@@ -4,6 +4,12 @@ set -euo pipefail
 REPO_DIR="/home/iamironman/dypdyp"
 cd "$REPO_DIR"
 
+# Explicit user approval gate to prevent unauthorized auto-push
+if [ ! -f "$REPO_DIR/.sync_approved" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-sync paused: Explicit user approval required before commit/push. (Awaiting explicit user command)."
+    exit 0
+fi
+
 # Ensure we're on main
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'main')"
 

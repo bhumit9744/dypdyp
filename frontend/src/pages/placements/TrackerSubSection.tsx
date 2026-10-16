@@ -18,7 +18,8 @@ import {
   Scale,
   X,
   FileCheck2,
-  BellRing
+  BellRing,
+  Video
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Application, ApplicationStatus, InterviewSchedule } from '../../types';
@@ -29,6 +30,7 @@ export const TrackerSubSection: React.FC = () => {
     interviews,
     toggleInterviewChecklist,
     updateOfferDecision,
+    setCurrentSection,
     setCurrentSubSection
   } = useApp();
 
@@ -403,15 +405,16 @@ export const TrackerSubSection: React.FC = () => {
                     </div>
 
                     <div className="flex items-center space-x-2 pt-2">
-                      <a
-                        href={currentInterview.meetUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs text-center flex items-center justify-center gap-1 shadow-xs transition-colors"
+                      <button
+                        onClick={() => {
+                          setCurrentSection('career');
+                          setCurrentSubSection('interview-studio');
+                        }}
+                        className="flex-1 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-xs hover:shadow-brand-500/20 transition-all"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Join Meeting Room</span>
-                      </a>
+                        <Video className="w-3.5 h-3.5" />
+                        <span>Launch In-Platform Interview Studio</span>
+                      </button>
                       <button
                         onClick={() => handleSetReminder(currentInterview.roundName)}
                         className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"

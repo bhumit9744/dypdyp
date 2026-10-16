@@ -40,6 +40,7 @@ class Student(Base):
     resumes = relationship("Resume", back_populates="student", cascade="all, delete-orphan")
     applications = relationship("Application", back_populates="student", cascade="all, delete-orphan")
     assessment_results = relationship("AssessmentResult", back_populates="student", cascade="all, delete-orphan")
+    interview_sessions = relationship("InterviewSession", back_populates="student", cascade="all, delete-orphan")
 
 class Project(Base):
     __tablename__ = "projects"
@@ -283,3 +284,76 @@ class InterviewExperienceRecord(Base):
     verification_status = Column(String, default="Student-Reported (Unverified)")
     submitted_at = Column(DateTime, default=datetime.datetime.utcnow)
     upvotes = Column(Integer, default=0)
+
+# =========================================================
+# Real-Time AI Interview Studio Models
+# =========================================================
+
+class InterviewSession(Base):
+    __tablename__ = "interview_sessions"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    role_target = Column(String, nullable=False)
+    job_id = Column(String, nullable=True)
+    interview_type = Column(String, default="Technical") # "Technical", "System Design", "Behavioral", "Mixed"
+    difficulty = Column(String, default="Medium")        # "Easy", "Medium", "Hard"
+    required_skills = Column(JSON, default=list)
+    status = Column(String, default="Setup")            # "Setup", "InProgress", "Completed", "Cancelled"
+    question_limit = Column(Integer, default=5)
+    duration_minutes = Column(Integer, default=15)
+    overall_score = Column(Float, nullable=True)        # 0.0 - 100.0, strictly separated from CV measurements
+    overall_feedback = Column(JSON, nullable=True)      # Final comprehensive rubric breakdown
+    consent_record = Column(JSON, default=dict)         # Explicit camera/mic consent and retention timestamp
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    ended_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    student = relationship("Student", back_populates="interview_sessions")
+    turns = relationship("InterviewTurn", back_populates="session", cascade="all, delete-orphan", order_by="InterviewTurn.turn_number")
+    vision_metrics = relationship("InterviewVisionMetric", back_populates="session", cascade="all, delete-orphan", order_by="InterviewVisionMetric.timestamp")
+
+class InterviewTurn(Base):
+    __tablename__ = "interview_turns"
+
+    id = Column(String, primary_key=True, index=True)
+    session_id = Column(String, ForeignKey("interview_sessions.id"), nullable=False, index=True)
+    turn_number = Column(Integer, nullable=False)
+    question_text = Column(Text, nullable=False)
+    question_category = Column(String, default="Technical") # "Technical", "Problem Solving", "Experience", "FollowUp"
+    question_rubric = Column(JSON, default=dict)            # Expected criteria & grading anchors
+    is_followup = Column(Boolean, default=False)
+    parent_turn_id = Column(String, nullable=True)
+    student_answer_transcript = Column(Text, nullable=True) # Real audio transcription or text fallback
+    input_method = Column(String, default="voice")          # "voice", "text_fallback"
+    answer_duration_seconds = Column(Float, nullable=True)
+    evaluation_result = Column(JSON, nullable=True)         # Correctness, relevance, completeness, clarity, evidence
+    turn_status = Column(String, default="Asking")          # "Asking", "Listening", "Evaluating", "Completed", "Skipped"
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    answered_at = Column(DateTime, nullable=True)
+
+    session = relationship("InterviewSession", back_populates="turns")
+
+class InterviewVisionMetric(Base):
+    """
+    Separate computer vision telemetry model.
+    CRITICAL PRIVACY RULE: These measurements are strictly for camera ergonomics,
+    lighting, and framing awareness. They are NEVER used to infer honesty, intelligence,
+    cheating, or interview suitability.
+    """
+    __tablename__ = "interview_vision_metrics"
+
+    id = Column(String, primary_key=True, index=True)
+    session_id = Column(String, ForeignKey("interview_sessions.id"), nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    face_detected = Column(Boolean, default=True)
+    face_count = Column(Integer, default=1)
+    approx_head_pose = Column(String, default="Looking Forward") # "Looking Forward", "Turned Left", "Turned Right", "Looking Down", "Looking Up", "Undetermined"
+    lighting_quality = Column(String, default="Good")            # "Good", "Too Dark", "Too Bright", "Uneven"
+    frame_blur = Column(Float, default=0.0)
+    obstruction_detected = Column(Boolean, default=False)
+    confidence = Column(Float, default=1.0)
+    notes = Column(String, default="Camera positioning indicator only; not factored into candidate interview score.")
+
+    session = relationship("InterviewSession", back_populates="vision_metrics")

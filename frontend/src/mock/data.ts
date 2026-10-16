@@ -1313,7 +1313,7 @@ export const mockInterviews: InterviewSchedule[] = [
     time: '11:00 AM - 12:15 PM IST',
     durationMinutes: 75,
     interviewer: 'David Chen (Principal Architect, Confluence)',
-    meetUrl: 'https://zoom.us/j/atlassian-campus-round-2',
+    meetUrl: '#in-platform-interview-room',
     status: 'Upcoming',
     preparationChecklist: [
       { item: 'Review CAP theorem & sharding tradeoffs', done: true },
@@ -1340,7 +1340,7 @@ export const mockInterviews: InterviewSchedule[] = [
     time: '03:00 PM - 04:00 PM IST',
     durationMinutes: 60,
     interviewer: 'Rohit K. (Frontend Staff Engineer)',
-    meetUrl: 'https://meet.google.com/rzp-campus-tech',
+    meetUrl: '#in-platform-interview-room',
     status: 'Upcoming',
     preparationChecklist: [
       { item: 'Inspect Core Web Vitals (INP, LCP, CLS) optimization strategies', done: true },

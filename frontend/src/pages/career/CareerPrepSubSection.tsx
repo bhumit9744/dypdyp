@@ -91,6 +91,21 @@ export const CareerPrepSubSection: React.FC = () => {
             </p>
           </div>
         )}
+
+        <div className="pt-2 flex items-center justify-between">
+          <p className="text-xs text-slate-500">
+            Practice real technical questions with live speech-to-text, camera framing telemetry, and Claude rubric evaluations.
+          </p>
+          <button
+            onClick={() => {
+              setCurrentSection('career');
+              setCurrentSubSection('interview-studio');
+            }}
+            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-xs hover:shadow-brand-500/20 transition-all flex items-center gap-1.5 shrink-0"
+          >
+            Launch Interview Studio <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Real Verified Skills Breakdown */}

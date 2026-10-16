@@ -25,7 +25,9 @@ import {
   FileText,
   ShieldAlert,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Video,
+  Bot
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { InterviewExperience, InterviewSchedule } from '../../types';
@@ -36,7 +38,10 @@ export const InterviewsSubSection: React.FC = () => {
     interviews,
     addInterviewExperience,
     reportInterviewExperience,
-    toggleInterviewChecklist
+    toggleInterviewChecklist,
+    setCurrentSection,
+    setCurrentSubSection,
+    setActiveInterviewTarget
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'experiences' | 'questions' | 'liveSlots'>('experiences');
@@ -199,6 +204,36 @@ export const InterviewsSubSection: React.FC = () => {
           </span>{' '}
           All interview experiences are student-reported and peer-moderated under college placement guidelines. Never publish confidential online tests, NDA-protected problems, leaked questions, or private recruiter contact details.
         </div>
+      </div>
+
+      {/* In-Platform AI Interview Studio Banner */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-white uppercase tracking-wider">
+              On-Website Real-Time Studio
+            </span>
+            <span className="text-xs text-brand-100">Zero External Software</span>
+          </div>
+          <h3 className="font-extrabold text-base text-white">
+            Practice Real Technical Rounds Directly on Placement Hub
+          </h3>
+          <p className="text-xs text-brand-100 max-w-xl">
+            Live speech recognition transcription, animated AI interviewer avatar, OpenCV camera framing telemetry, and Claude 3.5 rubric scoring — entirely in your browser without Zoom or Google Meet.
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            setCurrentSection('career');
+            setCurrentSubSection('interview-studio');
+          }}
+          className="px-5 py-2.5 rounded-xl bg-white text-brand-700 hover:bg-brand-50 font-bold text-xs shadow-sm flex items-center gap-1.5 shrink-0 transition-colors"
+        >
+          <Video className="w-3.5 h-3.5" />
+          <span>Launch AI Interview Studio</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* Tabs Switcher & Search Bar */}
@@ -625,15 +660,24 @@ export const InterviewsSubSection: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <a
-                    href={int.meetUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs flex items-center space-x-1.5 shadow-xs"
+                  <button
+                    onClick={() => {
+                      if (setActiveInterviewTarget) {
+                        setActiveInterviewTarget({
+                          role: int.roleTitle || int.roundName,
+                          company: int.companyName,
+                          type: 'Technical',
+                          skills: int.preparationTopics || []
+                        });
+                      }
+                      setCurrentSection('career');
+                      setCurrentSubSection('interview-studio');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center space-x-2 shadow-xs hover:shadow-brand-500/20 transition-all"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Join Meeting Room</span>
-                  </a>
+                    <Video className="w-3.5 h-3.5" />
+                    <span>Enter In-Platform Interview Studio</span>
+                  </button>
                 </div>
               </div>
 

@@ -2,7 +2,7 @@ export type Role = 'student' | 'coordinator';
 
 export type NavSection = 'dashboard' | 'career' | 'explore' | 'placements' | 'arena';
 
-export type CareerSubSection = 'profile' | 'skills' | 'resume' | 'assessments' | 'career-prep';
+export type CareerSubSection = 'profile' | 'skills' | 'resume' | 'assessments' | 'career-prep' | 'interview-studio';
 
 export type ExploreSubSection =
   | 'jobs-internships'
@@ -485,4 +485,73 @@ export interface IntegrationsStatus {
     provider: string;
     message: string;
   };
+}
+
+export interface TurnEvaluation {
+  correctness_score: number;
+  relevance_score: number;
+  completeness_score: number;
+  clarity_score: number;
+  evidence_score: number;
+  turn_overall_score: number;
+  strengths: string[];
+  areas_for_improvement: string[];
+  follow_up_recommended: boolean;
+  suggested_follow_up?: string | null;
+}
+
+export interface InterviewTurn {
+  id: string;
+  turn_number: number;
+  question_text: string;
+  question_category: string;
+  question_rubric?: {
+    expected_points?: string[];
+    rubric?: Record<string, string>;
+  };
+  is_followup?: boolean;
+  student_answer_transcript?: string;
+  input_method?: 'voice' | 'text_fallback';
+  answer_duration_seconds?: number;
+  evaluation_result?: TurnEvaluation;
+  turn_status: 'Asking' | 'Listening' | 'Evaluating' | 'Completed' | 'Skipped';
+  created_at?: string;
+  answered_at?: string;
+}
+
+export interface VisionSummary {
+  face_detected: boolean;
+  approx_head_pose: string;
+  lighting_quality: string;
+  confidence: number;
+  total_frames_analyzed: number;
+  disclaimer: string;
+}
+
+export interface InterviewFinalSummary {
+  overall_score: number;
+  executive_summary: string;
+  competency_scores: Record<string, number>;
+  key_strengths: string[];
+  priority_growth_areas: string[];
+  hiring_readiness_recommendation: string;
+}
+
+export interface InterviewSession {
+  id: string;
+  student_id: string;
+  role_target: string;
+  interview_type: string;
+  difficulty: string;
+  required_skills: string[];
+  status: 'Setup' | 'InProgress' | 'Completed' | 'Cancelled';
+  question_limit: number;
+  duration_minutes: number;
+  overall_score?: number;
+  overall_feedback?: InterviewFinalSummary;
+  created_at?: string;
+  started_at?: string;
+  ended_at?: string;
+  turns: InterviewTurn[];
+  vision_summary?: VisionSummary;
 }

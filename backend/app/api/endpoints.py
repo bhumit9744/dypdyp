@@ -539,7 +539,7 @@ async def parse_job_description(payload: ParseJobRequest):
     Does NOT fabricate jobs. If API is disconnected, returns clear 503 error.
     """
     api_key = settings.ANTHROPIC_API_KEY.strip()
-    if not api_key or api_key.startswith("your_") or api_key.startswith("sk-kodex"):
+    if not api_key or api_key.startswith("your_") or len(api_key) < 8:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Anthropic Claude API is not configured. Set ANTHROPIC_API_KEY in backend/.env to parse job descriptions automatically."
@@ -600,7 +600,7 @@ async def explain_match(job_id: str, student_id: str, db: Session = Depends(get_
 
     # 3. Check Claude API status
     api_key = settings.ANTHROPIC_API_KEY.strip()
-    if not api_key or api_key.startswith("your_") or api_key.startswith("sk-kodex"):
+    if not api_key or api_key.startswith("your_") or len(api_key) < 8:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Anthropic Claude API is disconnected. Set ANTHROPIC_API_KEY in backend/.env to generate AI match explanations."
