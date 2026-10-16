@@ -15,7 +15,8 @@ import {
   FileCheck2,
   Rocket,
   Trophy,
-  Code2
+  Code2,
+  Gamepad2
 } from 'lucide-react';
 import { SubSection } from '../../types';
 
@@ -63,6 +64,9 @@ export const SubNav: React.FC = () => {
       { id: 'tracker', label: 'Application Tracker', icon: Clock },
       { id: 'shortlists', label: role === 'coordinator' ? 'Shortlists (TPO Audit)' : 'Shortlists', icon: ListOrdered, count: campusDrives.length },
       { id: 'interviews', label: 'Interview Experiences', icon: CalendarDays, count: interviewExperiences.length }
+    ],
+    arena: [
+      { id: 'games', label: 'Games', icon: Gamepad2 }
     ]
   };
 

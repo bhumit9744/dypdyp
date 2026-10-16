@@ -12,7 +12,8 @@ import {
   Briefcase,
   GraduationCap,
   Menu,
-  X
+  X,
+  Gamepad2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection } from '../../types';
@@ -67,6 +68,12 @@ export const Header: React.FC = () => {
       icon: Briefcase,
       defaultSub: 'applications',
       badge: applications.length > 0 ? applications.length : undefined
+    },
+    {
+      id: 'arena',
+      label: 'Games',
+      icon: Gamepad2,
+      defaultSub: 'games'
     }
   ];
 

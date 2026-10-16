@@ -1,6 +1,6 @@
 export type Role = 'student' | 'coordinator';
 
-export type NavSection = 'dashboard' | 'career' | 'explore' | 'placements';
+export type NavSection = 'dashboard' | 'career' | 'explore' | 'placements' | 'arena';
 
 export type CareerSubSection = 'profile' | 'skills' | 'resume' | 'assessments' | 'career-prep';
 
@@ -17,7 +17,9 @@ export type ExploreSubSection =
 
 export type PlacementsSubSection = 'applications' | 'tracker' | 'shortlists' | 'interviews';
 
-export type SubSection = CareerSubSection | ExploreSubSection | PlacementsSubSection;
+export type ArenaSubSection = 'games' | 'leaderboard';
+
+export type SubSection = CareerSubSection | ExploreSubSection | PlacementsSubSection | ArenaSubSection;
 
 export interface StudentProfile {
   id: string;

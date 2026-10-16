@@ -27,6 +27,9 @@ import { TrackerSubSection } from './pages/placements/TrackerSubSection';
 import { ShortlistsSubSection } from './pages/placements/ShortlistsSubSection';
 import { InterviewsSubSection } from './pages/placements/InterviewsSubSection';
 
+// Tech Arena / Games
+import { TechArenaPage } from './pages/arena/TechArenaPage';
+
 export const AppContent: React.FC = () => {
   const { currentSection, currentSubSection } = useApp();
 
@@ -82,6 +85,9 @@ export const AppContent: React.FC = () => {
           default:
             return <ApplicationsSubSection />;
         }
+
+      case 'arena':
+        return <TechArenaPage />;
 
       default:
         return <DashboardPage />;
