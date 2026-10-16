@@ -13,7 +13,10 @@ import {
   Clock,
   ListOrdered,
   CalendarDays,
-  FileCheck2
+  FileCheck2,
+  Rocket,
+  Trophy,
+  Code2
 } from 'lucide-react';
 import { SubSection } from '../../types';
 
@@ -22,7 +25,16 @@ export const SubNav: React.FC = () => {
     currentSection,
     currentSubSection,
     setCurrentSubSection,
-    role
+    role,
+    jobs,
+    companies,
+    startups,
+    alumni,
+    programs,
+    projectsFreelance,
+    applications,
+    campusDrives,
+    interviewExperiences
   } = useApp();
 
   if (currentSection === 'dashboard') return null;
@@ -39,16 +51,18 @@ export const SubNav: React.FC = () => {
       { id: 'career-prep', label: 'Career Prep & Gaps', icon: TrendingUp }
     ],
     explore: [
-      { id: 'jobs', label: 'Job Openings', icon: Briefcase, count: 4 },
-      { id: 'companies', label: 'Companies', icon: Building2, count: 4 },
-      { id: 'alumni', label: 'Alumni Directory', icon: Users, count: 3 },
-      { id: 'referrals', label: 'Referral Opportunities', icon: GitPullRequest, count: 2 }
+      { id: 'jobs-internships', label: 'Jobs & Internships', icon: Briefcase, count: jobs.length },
+      { id: 'companies', label: 'Companies', icon: Building2, count: companies.length },
+      { id: 'startups', label: 'Startup Ecosystem', icon: Rocket, count: startups.length },
+      { id: 'people-referrals', label: 'People & Referrals', icon: Users, count: alumni.length },
+      { id: 'programs-challenges', label: 'Programs & Challenges', icon: Trophy, count: programs.length },
+      { id: 'projects-freelance', label: 'Projects & Freelance', icon: Code2, count: projectsFreelance.length }
     ],
     placements: [
-      { id: 'applications', label: 'Applications', icon: FileCheck2, count: 3 },
-      { id: 'tracker', label: 'Status Pipeline Tracker', icon: Clock },
-      { id: 'shortlists', label: role === 'coordinator' ? 'Candidate Rankings (TPO)' : 'Shortlists & Rankings', icon: ListOrdered },
-      { id: 'interviews', label: 'Interview Desk', icon: CalendarDays, count: 2 }
+      { id: 'applications', label: 'My Applications', icon: FileCheck2, count: applications.length },
+      { id: 'tracker', label: 'Application Tracker', icon: Clock },
+      { id: 'shortlists', label: role === 'coordinator' ? 'Shortlists (TPO Audit)' : 'Shortlists', icon: ListOrdered, count: campusDrives.length },
+      { id: 'interviews', label: 'Interview Experiences', icon: CalendarDays, count: interviewExperiences.length }
     ]
   };
 

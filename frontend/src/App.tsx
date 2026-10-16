@@ -14,11 +14,13 @@ import { ResumeSubSection } from './pages/career/ResumeSubSection';
 import { AssessmentsSubSection } from './pages/career/AssessmentsSubSection';
 import { CareerPrepSubSection } from './pages/career/CareerPrepSubSection';
 
-// Explore Subsections
-import { JobsSubSection } from './pages/explore/JobsSubSection';
+// Explore Subsections (6 Modules)
+import { JobsInternshipsSubSection } from './pages/explore/JobsInternshipsSubSection';
 import { CompaniesSubSection } from './pages/explore/CompaniesSubSection';
-import { AlumniSubSection } from './pages/explore/AlumniSubSection';
-import { ReferralsSubSection } from './pages/explore/ReferralsSubSection';
+import { StartupsSubSection } from './pages/explore/StartupsSubSection';
+import { PeopleReferralsSubSection } from './pages/explore/PeopleReferralsSubSection';
+import { ProgramsChallengesSubSection } from './pages/explore/ProgramsChallengesSubSection';
+import { ProjectsFreelanceSubSection } from './pages/explore/ProjectsFreelanceSubSection';
 
 // Placements Subsections
 import { ApplicationsSubSection } from './pages/placements/ApplicationsSubSection';
@@ -53,13 +55,20 @@ export const AppContent: React.FC = () => {
         switch (currentSubSection) {
           case 'companies':
             return <CompaniesSubSection />;
+          case 'startups':
+            return <StartupsSubSection />;
+          case 'people-referrals':
           case 'alumni':
-            return <AlumniSubSection />;
           case 'referrals':
-            return <ReferralsSubSection />;
+            return <PeopleReferralsSubSection />;
+          case 'programs-challenges':
+            return <ProgramsChallengesSubSection />;
+          case 'projects-freelance':
+            return <ProjectsFreelanceSubSection />;
+          case 'jobs-internships':
           case 'jobs':
           default:
-            return <JobsSubSection />;
+            return <JobsInternshipsSubSection />;
         }
 
       case 'placements':

@@ -19,7 +19,10 @@ import {
   Clock,
   ListOrdered,
   CalendarDays,
-  FileCheck2
+  FileCheck2,
+  Rocket,
+  Trophy,
+  Code2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection, CareerSubSection, ExploreSubSection, PlacementsSubSection } from '../../types';
@@ -63,10 +66,12 @@ export const Sidebar: React.FC = () => {
       label: 'Explore',
       icon: Compass,
       subItems: [
-        { id: 'jobs', label: 'Job Openings', icon: Briefcase, badge: '4 New' },
+        { id: 'jobs-internships', label: 'Jobs & Internships', icon: Briefcase, badge: '6 Active' },
         { id: 'companies', label: 'Companies', icon: Building2 },
-        { id: 'alumni', label: 'Alumni Network', icon: Users },
-        { id: 'referrals', label: 'Referrals', icon: GitPullRequest }
+        { id: 'startups', label: 'Startup Ecosystem', icon: Rocket, badge: 'New' },
+        { id: 'people-referrals', label: 'People & Referrals', icon: Users },
+        { id: 'programs-challenges', label: 'Programs & Challenges', icon: Trophy },
+        { id: 'projects-freelance', label: 'Projects & Freelance', icon: Code2 }
       ]
     },
     {
@@ -74,10 +79,10 @@ export const Sidebar: React.FC = () => {
       label: 'Placements',
       icon: Briefcase,
       subItems: [
-        { id: 'applications', label: 'Applications', icon: FileCheck2, badge: '3' },
-        { id: 'tracker', label: 'Status Tracker', icon: Clock },
-        { id: 'shortlists', label: 'Candidate Shortlists', icon: ListOrdered, badge: role === 'coordinator' ? 'Active' : 'TPO' },
-        { id: 'interviews', label: 'Interview Desk', icon: CalendarDays, badge: 'Tomorrow' }
+        { id: 'applications', label: 'My Applications', icon: FileCheck2, badge: '4' },
+        { id: 'tracker', label: 'Application Tracker', icon: Clock },
+        { id: 'shortlists', label: 'Shortlists', icon: ListOrdered, badge: role === 'coordinator' ? 'Active' : 'TPO' },
+        { id: 'interviews', label: 'Interview Experiences', icon: CalendarDays, badge: '4' }
       ]
     }
   ];

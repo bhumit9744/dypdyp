@@ -3,7 +3,18 @@ export type Role = 'student' | 'coordinator';
 export type NavSection = 'dashboard' | 'career' | 'explore' | 'placements';
 
 export type CareerSubSection = 'profile' | 'skills' | 'resume' | 'assessments' | 'career-prep';
-export type ExploreSubSection = 'jobs' | 'companies' | 'alumni' | 'referrals';
+
+export type ExploreSubSection =
+  | 'jobs-internships'
+  | 'companies'
+  | 'startups'
+  | 'people-referrals'
+  | 'programs-challenges'
+  | 'projects-freelance'
+  | 'jobs'
+  | 'alumni'
+  | 'referrals';
+
 export type PlacementsSubSection = 'applications' | 'tracker' | 'shortlists' | 'interviews';
 
 export type SubSection = CareerSubSection | ExploreSubSection | PlacementsSubSection;
@@ -98,13 +109,20 @@ export interface JobOpening {
   companyLogo: string;
   location: string;
   workType: 'On-site' | 'Hybrid' | 'Remote';
-  packageLpa: number;
-  tier: 'Dream' | 'Super Dream' | 'Core';
+  opportunityType: 'Full-time' | 'Summer Internship' | '6-Month Co-op' | 'Startup Internship';
+  packageLpa?: number;
+  salaryOrStipendText: string;
+  tier: 'Dream' | 'Super Dream' | 'Core' | 'Startup';
   deadline: string;
   requiredCgpa: number;
   tags: string[];
   description: string;
   requiredSkills: string[];
+  sourceType: 'Campus Direct Drive' | 'Alumni Shared' | 'Off-Campus Verified';
+  sourceUrl?: string;
+  isAlumniShared?: boolean;
+  sharedByAlumniName?: string;
+  sharedByAlumniRole?: string;
   matchScore: number;
   matchReasons: {
     skillsMatch: string;
@@ -113,7 +131,9 @@ export interface JobOpening {
   };
   isDuplicateDetected?: boolean;
   duplicateNotice?: string;
+  isSaved?: boolean;
   applied?: boolean;
+  dataSource: 'Source Verified' | 'Fictional Demo';
 }
 
 export interface Company {
@@ -121,15 +141,46 @@ export interface Company {
   name: string;
   logo: string;
   industry: string;
+  headquarters: string;
+  products: string[];
   tier: 'Dream' | 'Super Dream' | 'Core';
   openRolesCount: number;
   website: string;
+  careerPageUrl: string;
   description: string;
   visitedDate: string;
   packageRange: string;
   eligibilityCgpa: number;
   hiredAlumniCount: number;
+  historicalHiringDisclosed: boolean;
+  historicalHiringSummary?: string;
   requiredSkills: string[];
+  relevantAlumniNames?: string[];
+  dataSource: 'Source Verified' | 'Fictional Demo';
+}
+
+export interface Startup {
+  id: string;
+  name: string;
+  logo: string;
+  tagline: string;
+  description: string;
+  industry: string;
+  headquarters: string;
+  growthStage: 'Bootstrapped' | 'Pre-Seed' | 'Seed' | 'Series A' | 'Series B';
+  fundingDisclosed: boolean;
+  fundingAmount?: string;
+  incubatorOrAccelerator?: string;
+  products: string[];
+  founderName: string;
+  founderRole: string;
+  founderContactChannel: string;
+  earlyTeamOpportunitiesCount: number;
+  mvpCollaborationOpen: boolean;
+  mvpCollaborationDescription?: string;
+  website: string;
+  requiredSkills: string[];
+  dataSource: 'Source Verified' | 'Fictional Demo';
 }
 
 export interface Alumni {
@@ -145,6 +196,21 @@ export interface Alumni {
   githubUrl?: string;
   willingToRefer: boolean;
   mentorshipAvailable: boolean;
+  mentorshipTopics?: string[];
+  sharedJobCount: number;
+  isOptIn: boolean;
+}
+
+export interface RecruiterContact {
+  id: string;
+  name: string;
+  avatar: string;
+  company: string;
+  role: string;
+  hiringFocus: string[];
+  isOptIn: boolean;
+  approvedContactChannel: string;
+  activeDrivesCount: number;
 }
 
 export interface ReferralOpportunity {
@@ -160,7 +226,84 @@ export interface ReferralOpportunity {
   postedDate: string;
 }
 
+export interface NetworkingEvent {
+  id: string;
+  title: string;
+  eventType: 'Alumni Tech Talk' | 'Recruiter AMA' | 'Mock Placement Drive' | 'Founder AMA';
+  hostName: string;
+  hostCompany: string;
+  hostAvatar: string;
+  date: string;
+  time: string;
+  locationOrPlatform: string;
+  attendeesCount: number;
+  meetUrl: string;
+  isRegistered?: boolean;
+}
+
+export interface ProgramOpportunity {
+  id: string;
+  title: string;
+  organizer: string;
+  logo: string;
+  opportunityType:
+    | 'Hackathon'
+    | 'Coding Competition'
+    | 'Research Fellowship'
+    | 'Academic Project'
+    | 'Innovation Challenge'
+    | 'Workshop'
+    | 'Apprenticeship';
+  eligibility: string;
+  deadline: string;
+  stipendOrGrant: string;
+  hasCertificate: boolean;
+  prizeOrAward?: string;
+  hiringPathway: 'Direct Fast-Track Interview' | 'Shortlist PPO' | 'Corporate Visibility' | 'Skill Credential Only';
+  mode: 'Virtual' | 'In-Person' | 'Hybrid';
+  location?: string;
+  externalUrl: string;
+  tags: string[];
+  registeredCount: number;
+  isRegistered?: boolean;
+  dataSource: 'Verified Partner' | 'Source Verified' | 'Fictional Demo';
+}
+
+export interface PracticalExperienceProject {
+  id: string;
+  title: string;
+  sponsorName: string;
+  sponsorLogo: string;
+  sponsorType: 'Company Sponsored' | 'Startup Trial' | 'Open Source' | 'Campus Ambassador' | 'Freelance Contract';
+  compensationType: 'Paid' | 'Unpaid' | 'Speculative' | 'Portfolio-only' | 'Compensation-unknown';
+  compensationAmount?: string;
+  durationWeeks: number;
+  techStack: string[];
+  deliverablesSummary: string;
+  verificationProofBadge?: string;
+  verificationBadgeAwarded?: string;
+  status: 'Open' | 'In Review' | 'Active';
+  applied?: boolean;
+  dataSource: 'Verified Program' | 'Source Verified' | 'Fictional Demo';
+}
+
 export type ApplicationStatus = 'Applied' | 'Screening' | 'Interview' | 'Offer' | 'Rejected' | 'Withdrawn';
+
+export interface OfferDetails {
+  id: string;
+  companyName: string;
+  role: string;
+  baseSalaryLpa: number;
+  variableLpa: number;
+  stocksLpa?: number;
+  totalCtcLpa: number;
+  location: string;
+  joiningDate: string;
+  acceptanceDeadline: string;
+  bondDetails: string;
+  status: 'Pending Decision' | 'Accepted' | 'Declined';
+  benefits: string[];
+}
 
 export interface Application {
   id: string;
@@ -174,12 +317,49 @@ export interface Application {
   currentRound: string;
   nextStepDeadline?: string;
   matchScore: number;
+  source?: 'Campus Direct Drive' | 'Off-Campus Drive' | 'Alumni Referral' | 'Explore Module';
+  opportunityType?: 'Full-time' | 'Summer Internship' | '6-Month Co-op';
+  jobDescription?: string;
+  eligibilityCriteria?: {
+    minCgpa: number;
+    eligibleBranches: string[];
+    maxBacklogs: number;
+  };
+  externalApplicationLink?: string;
+  resumeVersion?: {
+    fileName: string;
+    uploadedAt: string;
+    atsScore: number;
+  };
+  supportingDocuments?: {
+    name: string;
+    url: string;
+    verified: boolean;
+  }[];
+  privateNotes?: string;
+  tasks?: {
+    id: string;
+    title: string;
+    dueDate: string;
+    completed: boolean;
+    type: 'Assessment' | 'Document' | 'FollowUp' | 'InterviewPrep';
+  }[];
   timeline: {
     step: string;
     date: string;
     completed: boolean;
     current?: boolean;
+    source?: 'Student Reported' | 'College Verified Integration' | 'Recruiter Confirmed';
   }[];
+  updateHistory?: {
+    step: string;
+    date: string;
+    source: 'Student Reported' | 'College Verified Integration' | 'Recruiter Confirmed';
+    details: string;
+  }[];
+  isDuplicateWarning?: boolean;
+  duplicateWarningText?: string;
+  offerDetails?: OfferDetails;
 }
 
 export interface CandidateShortlist {
@@ -194,6 +374,33 @@ export interface CandidateShortlist {
   status: 'Shortlisted' | 'Waitlisted' | 'Under Review' | 'Rejected';
   ranking: number;
   topSkills: string[];
+}
+
+export interface CampusDrive {
+  id: string;
+  companyName: string;
+  companyLogo: string;
+  role: string;
+  tier: 'Super Dream' | 'Dream' | 'Core';
+  packageRange: string;
+  driveDate: string;
+  registrationDeadline: string;
+  registrationStatus: 'Registered' | 'Not Registered' | 'Closed';
+  branchEligibility: string[];
+  minCgpa: number;
+  maxBacklogs: number;
+  selectionRounds: string[];
+  instructions: string;
+  eligibilityAnalysis: {
+    status: 'Eligible' | 'Not Eligible' | 'Pending Verification';
+    metRequirements: string[];
+    unmetRequirements: string[];
+    unverifiedRequirements: string[];
+  };
+  officialShortlistPublished: boolean;
+  officialShortlistCount?: number;
+  nextRoundSchedule?: string;
+  scheduleConflictAlert?: string;
 }
 
 export interface InterviewSchedule {
@@ -214,4 +421,40 @@ export interface InterviewSchedule {
     done: boolean;
   }[];
   notes?: string;
+  preparationTopics?: string[];
+}
+
+export interface InterviewExperience {
+  id: string;
+  companyName: string;
+  companyLogo: string;
+  roleTitle: string;
+  recruitmentYear: number;
+  recruitmentType: 'On-Campus TPO' | 'Off-Campus' | 'Referral' | 'Pool Campus';
+  authorName: string;
+  authorBatch: string;
+  isAnonymous: boolean;
+  overallDifficulty: 'Easy' | 'Medium' | 'Hard';
+  outcome: 'Offer Received' | 'Rejected' | 'Withdrawn';
+  roundsBreakdown: {
+    roundNumber: number;
+    roundName: string;
+    roundType: 'Online Assessment' | 'Technical Round 1' | 'Technical Round 2' | 'System Design' | 'Managerial / Behavioral' | 'HR Round';
+    duration: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+    description: string;
+    questionsAsked: string[];
+  }[];
+  technicalQuestions: {
+    topic: 'DSA' | 'Java' | 'Python' | 'DBMS' | 'Operating Systems' | 'Computer Networks' | 'System Design' | 'Web / Frameworks';
+    question: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+  }[];
+  studyMaterialsRecommended: string[];
+  preparationChecklist: string[];
+  similarCompanyRecommendations: string[];
+  submissionDate: string;
+  verificationBadge: 'Student Reported' | 'TPO Verified Experience';
+  helpfulCount: number;
+  isReported?: boolean;
 }
