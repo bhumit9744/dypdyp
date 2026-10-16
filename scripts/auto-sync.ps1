@@ -37,8 +37,16 @@ $remoteCommit = (git rev-parse "@{u}" 2>$null)
 
 if ($localCommit -and ($localCommit -ne $remoteCommit)) {
     Write-Host "[$timestamp] Pushing commits to origin $currentBranch..."
-    git push origin $currentBranch
-    Write-Host "[$timestamp] Push complete."
+    try {
+        git push origin $currentBranch
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[$timestamp] Push complete."
+        } else {
+            Write-Warning "[$timestamp] git push exited with code $LASTEXITCODE. Remote push will retry on next cycle."
+        }
+    } catch {
+        Write-Warning "[$timestamp] Network or authentication error during push: $_"
+    }
 } else {
     Write-Host "[$timestamp] Everything up-to-date with remote."
 }
