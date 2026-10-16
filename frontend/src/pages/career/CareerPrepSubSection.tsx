@@ -20,7 +20,7 @@ export const CareerPrepSubSection: React.FC = () => {
   const { skills, studentProfile, integrationsStatus, setCurrentSection, setCurrentSubSection } = useApp();
 
   const verifiedSkills = skills.filter(s => s.verified);
-  const claudeConnected = integrationsStatus?.claude_api?.status === 'connected';
+  const aiConnected = integrationsStatus?.claude_api?.status === 'connected';
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -56,45 +56,45 @@ export const CareerPrepSubSection: React.FC = () => {
 
       {/* AI Interview Coach Integration Status */}
       <div className={`p-5 rounded-2xl border shadow-xs space-y-3 ${
-        claudeConnected
+        aiConnected
           ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40'
           : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40'
       }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
-            <Bot className={`w-5 h-5 ${claudeConnected ? 'text-emerald-600' : 'text-amber-600'}`} />
+            <Bot className={`w-5 h-5 ${aiConnected ? 'text-emerald-600' : 'text-amber-600'}`} />
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                Claude AI Interview Preparation Engine
+                Google Gemini AI Interview Preparation Engine
               </h3>
               <p className="text-xs text-slate-500">
-                Backend-only Anthropic Claude API for structured mock questions and grounded explanations
+                Backend-only Google Gen AI API for structured mock questions, scoring rubrics, and grounded explanations
               </p>
             </div>
           </div>
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-            claudeConnected
+            aiConnected
               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
               : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
           }`}>
-            {claudeConnected ? 'Connected (Live)' : 'Disconnected (Setup Required)'}
+            {aiConnected ? 'Connected (Live)' : 'Disconnected (Setup Required)'}
           </span>
         </div>
 
-        {!claudeConnected && (
+        {!aiConnected && (
           <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-white/60 dark:bg-slate-900/60 p-3.5 rounded-xl border border-amber-200/60 dark:border-amber-800/30">
             <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
-              Live Claude API Key Not Active:
+              Live Google Gemini API Key Not Active:
             </p>
             <p>
-              To enable AI interview simulations and evidence-grounded match explanations, provide a valid <code>ANTHROPIC_API_KEY</code> in <code>backend/.env</code>. Under the Live Data Only policy, no simulated or fabricated AI responses are generated.
+              To enable AI interview simulations and evidence-grounded match explanations, provide a valid <code>GEMINI_API_KEY</code> in <code>backend/.env</code>. Under the Live Data Only policy, no simulated or fabricated AI responses are generated.
             </p>
           </div>
         )}
 
         <div className="pt-2 flex items-center justify-between">
           <p className="text-xs text-slate-500">
-            Practice real technical questions with live speech-to-text, camera framing telemetry, and Claude rubric evaluations.
+            Practice real technical questions with live speech-to-text, camera framing telemetry, and Google Gemini rubric evaluations.
           </p>
           <button
             onClick={() => {

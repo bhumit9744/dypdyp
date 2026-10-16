@@ -192,13 +192,40 @@ class Resume(Base):
     student_id = Column(String, ForeignKey("students.id"), nullable=False)
     title = Column(String, nullable=False)
     target_role = Column(String, nullable=False)
+    target_company = Column(String, nullable=True)
+    template_id = Column(String, default="classic-professional")
+    is_master = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
     last_updated = Column(String, nullable=False)
-    ats_score = Column(Integer, default=90)
+    ats_score = Column(Integer, default=85)
     ats_breakdown = Column(JSON, default=dict)
+    scoring_report = Column(JSON, default=dict)
     summary = Column(Text, nullable=True)
     evidence_backed_claims = Column(Integer, default=0)
+    styling_config = Column(JSON, default=dict)
+    sections_order = Column(JSON, default=list)
+    content = Column(JSON, default=dict)
+    evidence_links = Column(JSON, default=list)
+    tailoring_history = Column(JSON, default=list)
 
     student = relationship("Student", back_populates="resumes")
+
+class AlumniResumeExample(Base):
+    __tablename__ = "alumni_resume_examples"
+
+    id = Column(String, primary_key=True, index=True)
+    alumni_name = Column(String, nullable=False)
+    graduation_year = Column(Integer, nullable=False)
+    role = Column(String, nullable=False)
+    industry = Column(String, nullable=False)
+    template_id = Column(String, default="classic-professional")
+    placement_outcome = Column(String, nullable=True)
+    is_authorized = Column(Boolean, default=True)
+    is_anonymized = Column(Boolean, default=True)
+    skills = Column(JSON, default=list)
+    projects_summary = Column(JSON, default=list)
+    resume_content = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class Application(Base):
     __tablename__ = "applications"
@@ -212,10 +239,13 @@ class Application(Base):
     next_step_deadline = Column(String, nullable=True)
     match_score = Column(Integer, default=85)
     timeline = Column(JSON, default=list)
+    resume_id = Column(String, ForeignKey("resumes.id"), nullable=True)
+    resume_snapshot = Column(JSON, nullable=True)
 
     student = relationship("Student", back_populates="applications")
     job = relationship("Job", back_populates="applications")
     interviews = relationship("Interview", back_populates="application")
+    resume = relationship("Resume")
 
 class Interview(Base):
     __tablename__ = "interviews"

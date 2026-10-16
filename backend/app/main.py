@@ -1,14 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
-from .core.database import engine, Base
+from .core.database import engine, Base, init_db_schema
 from .models import models
 from .api.endpoints import router as api_router
 from .api.interview_endpoints import router as interview_router
 from .api.roadmap_endpoints import router as roadmap_router
+from .api.resume_endpoints import router as resume_router
 
-# Initialize database tables
-Base.metadata.create_all(bind=engine)
+# Initialize database tables and columns
+init_db_schema()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -28,6 +29,7 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(interview_router, prefix="/api/v1")
 app.include_router(roadmap_router, prefix="/api/v1")
+app.include_router(resume_router, prefix="/api/v1")
 
 @app.get("/")
 def root():
