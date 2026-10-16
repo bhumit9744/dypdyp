@@ -1,6 +1,5 @@
 import React from 'react';
 import { useApp } from './context/AppContext';
-import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { SubNav } from './components/layout/SubNav';
 
@@ -90,30 +89,24 @@ export const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans">
-      {/* Collapsible Left Navigation Bar */}
-      <Sidebar />
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-brand-500/20 selection:text-brand-900">
+      {/* Top Navbar */}
+      <Header />
 
-      {/* Main Right Content Panel */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header */}
-        <Header />
+      {/* Dynamic Contextual Sub-Navigation */}
+      <SubNav />
 
-        {/* Dynamic Contextual Sub-Navigation */}
-        <SubNav />
+      {/* Main Viewport */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        {renderContent()}
 
-        {/* Scrollable Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/60 dark:bg-slate-950">
-          {renderContent()}
-
-          {/* Footer note */}
-          <footer className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 dark:text-slate-500">
-            <p>
-              Placement Hub • PS6 Campus Recruitment & Evidence Intelligence Architecture • D.Y. Patil College of Engineering, Akurdi
-            </p>
-          </footer>
-        </main>
-      </div>
+        {/* Footer */}
+        <footer className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 dark:text-slate-500">
+          <p>
+            Placement Hub • PS6 Campus Recruitment & Evidence Intelligence Architecture • D.Y. Patil College of Engineering, Akurdi
+          </p>
+        </footer>
+      </main>
     </div>
   );
 };

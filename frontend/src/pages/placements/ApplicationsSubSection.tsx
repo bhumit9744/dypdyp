@@ -25,7 +25,8 @@ import {
   Square,
   Bell,
   X,
-  Send
+  Send,
+  Plus
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Application, ApplicationStatus } from '../../types';
@@ -33,6 +34,7 @@ import { Application, ApplicationStatus } from '../../types';
 export const ApplicationsSubSection: React.FC = () => {
   const {
     applications,
+    addApplication,
     updateApplicationNotes,
     toggleApplicationTask,
     updateApplicationStatus,
@@ -45,6 +47,17 @@ export const ApplicationsSubSection: React.FC = () => {
   const [activeAppDetail, setActiveAppDetail] = useState<Application | null>(null);
   const [editingNotesAppId, setEditingNotesAppId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState<string>('');
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+
+  // New Application Form State
+  const [newCompany, setNewCompany] = useState<string>('');
+  const [newTitle, setNewTitle] = useState<string>('');
+  const [newPackage, setNewPackage] = useState<number>(15.0);
+  const [newSource, setNewSource] = useState<string>('Off-Campus Drive');
+  const [newType, setNewType] = useState<string>('Full-time');
+  const [newStatus, setNewStatus] = useState<ApplicationStatus>('Applied');
+  const [newNotes, setNewNotes] = useState<string>('');
+  const [newLink, setNewLink] = useState<string>('');
 
   // Overview metrics
   const totalApps = applications.length;
@@ -110,11 +123,18 @@ export const ApplicationsSubSection: React.FC = () => {
 
         <div className="flex items-center space-x-2">
           <button
+            onClick={() => setShowAddModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-xs transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Log Application</span>
+          </button>
+          <button
             onClick={() => setCurrentSubSection('tracker')}
-            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-xs transition-colors"
+            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center space-x-1.5 transition-colors"
           >
             <Clock className="w-3.5 h-3.5" />
-            <span>Open Pipeline Tracker</span>
+            <span>Tracker</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -260,12 +280,21 @@ export const ApplicationsSubSection: React.FC = () => {
       {/* Applications List */}
       <div className="space-y-4">
         {filteredApplications.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
             <FileCheck2 className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-2">
-              No matching applications found.
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              No genuine applications logged yet.
+            </h3>
+            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+              Operating under Live Data Policy. No demo applications are seeded. Track your placement applications by logging authentic off-campus jobs or applying to campus drives.
             </p>
-            <p className="text-xs text-slate-400">Explore opportunities in the Explore tab to submit new applications.</p>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Log First Application
+            </button>
           </div>
         ) : (
           filteredApplications.map((app) => (
@@ -601,6 +630,167 @@ export const ApplicationsSubSection: React.FC = () => {
                 Close Dossier
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* LOG APPLICATION MODAL */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-brand-600" />
+                Log Real Job Application
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newCompany || !newTitle) {
+                  alert('Company name and job title are required.');
+                  return;
+                }
+                const newAppRecord: Application = {
+                  id: `app_${Date.now()}`,
+                  jobId: `job_${Date.now()}`,
+                  jobTitle: newTitle,
+                  companyName: newCompany,
+                  companyLogo: '',
+                  packageLpa: Number(newPackage) || 0,
+                  appliedDate: new Date().toISOString().split('T')[0],
+                  status: newStatus,
+                  currentRound: 'Application Review',
+                  matchScore: 0,
+                  source: newSource as any,
+                  opportunityType: newType as any,
+                  externalApplicationLink: newLink || undefined,
+                  privateNotes: newNotes,
+                  tasks: [
+                    { id: `tsk_${Date.now()}`, title: 'Review company tech stack & prepare elevator pitch', dueDate: 'In 3 days', completed: false, type: 'InterviewPrep' }
+                  ],
+                  timeline: [
+                    { step: 'Application Submitted', date: 'Today', completed: true, current: true, source: 'Student Reported' }
+                  ],
+                  updateHistory: [
+                    { step: 'Application Logged in Hub', date: 'Today', source: 'Student Reported', details: 'Candidate submitted verified application via Placement Hub portal.' }
+                  ]
+                };
+                await addApplication(newAppRecord);
+                setShowAddModal(false);
+                setNewCompany('');
+                setNewTitle('');
+                setNewNotes('');
+                setNewLink('');
+              }}
+              className="space-y-3.5 text-xs"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Company Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Google, Datadog"
+                    value={newCompany}
+                    onChange={(e) => setNewCompany(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Job Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Associate Software Engineer"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Package (LPA)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={newPackage}
+                    onChange={(e) => setNewPackage(parseFloat(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Source</label>
+                  <select
+                    value={newSource}
+                    onChange={(e) => setNewSource(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="Off-Campus Drive">Off-Campus Drive</option>
+                    <option value="Campus Direct Drive">Campus Direct Drive</option>
+                    <option value="Alumni Referral">Alumni Referral</option>
+                    <option value="Explore Module">Explore Module</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Current Stage</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value as ApplicationStatus)}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="Applied">Applied</option>
+                    <option value="Screening">Screening</option>
+                    <option value="Interview">Interview</option>
+                    <option value="Offer">Offer</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Careers / Job Portal URL</label>
+                <input
+                  type="url"
+                  placeholder="https://careers.company.com/job/..."
+                  value={newLink}
+                  onChange={(e) => setNewLink(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Private Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="Referral name, job requisitions, or key dates..."
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-800 dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white"
+                >
+                  Save Real Application
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

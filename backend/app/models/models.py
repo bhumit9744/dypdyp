@@ -231,3 +231,55 @@ class Interview(Base):
     notes = Column(Text, nullable=True)
 
     application = relationship("Application", back_populates="interviews")
+
+class CampusDrive(Base):
+    __tablename__ = "campus_drives"
+
+    id = Column(String, primary_key=True, index=True)
+    company_name = Column(String, nullable=False)
+    company_logo = Column(String, nullable=True)
+    role_title = Column(String, nullable=False)
+    package_lpa = Column(Float, nullable=False)
+    drive_date = Column(String, nullable=False)
+    status = Column(String, default="Upcoming")  # "Upcoming", "Active", "Completed"
+    source = Column(String, default="Official TPO")
+    min_cgpa = Column(Float, default=7.0)
+    eligible_branches = Column(JSON, default=list)
+    stages = Column(JSON, default=list)
+    shortlisted_count = Column(Integer, default=0)
+    total_registered = Column(Integer, default=0)
+
+class ShortlistRecord(Base):
+    __tablename__ = "shortlists"
+
+    id = Column(String, primary_key=True, index=True)
+    drive_id = Column(String, nullable=False)
+    company_name = Column(String, nullable=False)
+    role_title = Column(String, nullable=False)
+    student_id = Column(String, nullable=False)
+    student_name = Column(String, nullable=False)
+    roll_no = Column(String, nullable=False)
+    department = Column(String, nullable=False)
+    round_cleared = Column(String, nullable=False)
+    next_round = Column(String, nullable=False)
+    shortlist_date = Column(String, nullable=False)
+    published_by = Column(String, default="College TPO")
+
+class InterviewExperienceRecord(Base):
+    __tablename__ = "interview_experiences"
+
+    id = Column(String, primary_key=True, index=True)
+    student_name = Column(String, nullable=False)
+    company_name = Column(String, nullable=False)
+    role_title = Column(String, nullable=False)
+    placed_status = Column(String, default="Selected")  # "Selected", "Rejected", "Pending"
+    package_lpa = Column(Float, nullable=True)
+    interview_date = Column(String, nullable=False)
+    difficulty = Column(String, default="Medium")
+    rounds = Column(JSON, default=list)
+    overall_experience = Column(Text, nullable=False)
+    preparation_tips = Column(Text, nullable=True)
+    topics_covered = Column(JSON, default=list)
+    verification_status = Column(String, default="Student-Reported (Unverified)")
+    submitted_at = Column(DateTime, default=datetime.datetime.utcnow)
+    upvotes = Column(Integer, default=0)

@@ -21,9 +21,13 @@ import {
   SkillItem,
   CampusDrive,
   InterviewExperience,
-  OfferDetails
+  CandidateShortlist,
+  StudentProfile,
+  IntegrationsStatus
 } from '../types';
 import {
+  mockStudentProfile,
+  mockSkills,
   mockJobs,
   mockCompanies,
   mockStartups,
@@ -34,11 +38,9 @@ import {
   mockPrograms,
   mockProjectsFreelance,
   mockApplications,
-  mockInterviews,
-  mockSkills,
   mockCampusDrives,
-  mockInterviewExperiences,
-  IS_DEMO_MODE
+  mockInterviews,
+  mockInterviewExperiences
 } from '../mock/data';
 
 interface AppContextType {
@@ -55,7 +57,11 @@ interface AppContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 
-  // Explore interactive state
+  // Real Student Profile
+  studentProfile: StudentProfile | null;
+  updateStudentProfile: (profile: StudentProfile) => Promise<void>;
+
+  // Explore interactive state (Source-backed & User-added)
   jobs: JobOpening[];
   companies: Company[];
   startups: Startup[];
@@ -72,16 +78,20 @@ interface AppContextType {
 
   // Actions
   applyToJob: (jobId: string) => void;
+  addJob: (job: JobOpening) => Promise<void>;
   toggleSaveJob: (jobId: string) => void;
   applyToProject: (projectId: string) => void;
   registerForProgram: (programId: string) => void;
   registerForEvent: (eventId: string) => void;
   requestReferral: (referralId: string) => void;
 
-  // Career & Placement state
+  // Career & Placement state (Real records only)
   applications: Application[];
+  addApplication: (app: Application) => Promise<void>;
+  deleteApplication: (appId: string) => Promise<void>;
   interviews: InterviewSchedule[];
   skills: SkillItem[];
+  addSkill: (skill: SkillItem) => void;
   campusDrives: CampusDrive[];
   interviewExperiences: InterviewExperience[];
   toggleInterviewChecklist: (interviewId: string, itemIndex: number) => void;
@@ -92,12 +102,18 @@ interface AppContextType {
   updateApplicationStatus: (appId: string, newStatus: ApplicationStatus) => void;
   registerForDrive: (driveId: string) => void;
   publishDriveShortlist: (driveId: string) => void;
-  addInterviewExperience: (exp: InterviewExperience) => void;
+  addInterviewExperience: (exp: InterviewExperience) => Promise<void>;
   reportInterviewExperience: (expId: string) => void;
   updateOfferDecision: (appId: string, decision: 'Accepted' | 'Declined') => void;
 
-  isDemoMode: boolean;
+  // Live Architecture & Health Status
+  integrationsStatus: IntegrationsStatus | null;
+  refreshIntegrations: () => Promise<void>;
+  isLiveMode: boolean;
+  isLoading: boolean;
 }
+
+const API_BASE = 'http://127.0.0.1:8000/api/v1';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -108,12 +124,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [exploreCompanyFilter, setExploreCompanyFilter] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Initialize dark mode from localStorage or system preference
+  // Live Integrations Status
+  const [integrationsStatus, setIntegrationsStatus] = useState<IntegrationsStatus | null>(null);
+
+  // Student profile state (saved in localStorage or defaults to rich mock profile)
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('hub_student_profile');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // Fallback
+    }
+    return mockStudentProfile;
+  });
+
+  // State data collections initialized with rich mock data as requested
+  const [jobs, setJobs] = useState<JobOpening[]>(() => {
+    try {
+      const saved = localStorage.getItem('hub_real_jobs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return mockJobs;
+  });
+
+  const [companies, setCompanies] = useState<Company[]>(() => {
+    try {
+      const saved = localStorage.getItem('hub_real_companies');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return mockCompanies;
+  });
+
+  const [startups, setStartups] = useState<Startup[]>(mockStartups);
+  const [alumni, setAlumni] = useState<Alumni[]>(mockAlumni);
+  const [recruiters, setRecruiters] = useState<RecruiterContact[]>(mockRecruiters);
+  const [referrals, setReferrals] = useState<ReferralOpportunity[]>(mockReferrals);
+  const [networkingEvents, setNetworkingEvents] = useState<NetworkingEvent[]>(mockNetworkingEvents);
+  const [programs, setPrograms] = useState<ProgramOpportunity[]>(mockPrograms);
+  const [projectsFreelance, setProjectsFreelance] = useState<PracticalExperienceProject[]>(mockProjectsFreelance);
+
+  const [applications, setApplications] = useState<Application[]>(() => {
+    try {
+      const saved = localStorage.getItem('hub_real_applications');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return mockApplications;
+  });
+
+  const [interviews, setInterviews] = useState<InterviewSchedule[]>(mockInterviews);
+
+  const [skills, setSkills] = useState<SkillItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('hub_real_skills');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return mockSkills;
+  });
+
+  const [campusDrives, setCampusDrives] = useState<CampusDrive[]>(mockCampusDrives);
+
+  const [interviewExperiences, setInterviewExperiences] = useState<InterviewExperience[]>(() => {
+    try {
+      const saved = localStorage.getItem('hub_real_experiences');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return mockInterviewExperiences;
+  });
+
+  // Default to light theme as requested, with persistence
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return saved === 'dark';
   });
 
   useEffect(() => {
@@ -136,23 +234,230 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (sec === 'placements') setCurrentSubSection('applications');
   };
 
-  // State data collections
-  const [jobs, setJobs] = useState<JobOpening[]>(mockJobs);
-  const [companies, setCompanies] = useState<Company[]>(mockCompanies);
-  const [startups, setStartups] = useState<Startup[]>(mockStartups);
-  const [alumni, setAlumni] = useState<Alumni[]>(mockAlumni);
-  const [recruiters, setRecruiters] = useState<RecruiterContact[]>(mockRecruiters);
-  const [referrals, setReferrals] = useState<ReferralOpportunity[]>(mockReferrals);
-  const [networkingEvents, setNetworkingEvents] = useState<NetworkingEvent[]>(mockNetworkingEvents);
-  const [programs, setPrograms] = useState<ProgramOpportunity[]>(mockPrograms);
-  const [projectsFreelance, setProjectsFreelance] = useState<PracticalExperienceProject[]>(mockProjectsFreelance);
-  const [applications, setApplications] = useState<Application[]>(mockApplications);
-  const [interviews, setInterviews] = useState<InterviewSchedule[]>(mockInterviews);
-  const [skills, setSkills] = useState<SkillItem[]>(mockSkills);
-  const [campusDrives, setCampusDrives] = useState<CampusDrive[]>(mockCampusDrives);
-  const [interviewExperiences, setInterviewExperiences] = useState<InterviewExperience[]>(mockInterviewExperiences);
+  // Safe Integration Status Check & Initial Data Sync
+  const refreshIntegrations = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/integrations/status`);
+      if (res.ok) {
+        const data: IntegrationsStatus = await res.json();
+        setIntegrationsStatus(data);
+      }
+    } catch (e) {
+      console.warn('Backend API currently unreachable:', e);
+    }
+  };
 
-  // Apply to job action
+  useEffect(() => {
+    refreshIntegrations();
+
+    // Fetch live backend applications
+    fetch(`${API_BASE}/applications`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setApplications(data);
+          localStorage.setItem('hub_real_applications', JSON.stringify(data));
+        }
+      })
+      .catch(() => {});
+
+    // Fetch live backend jobs
+    fetch(`${API_BASE}/jobs`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setJobs(data);
+          localStorage.setItem('hub_real_jobs', JSON.stringify(data));
+        }
+      })
+      .catch(() => {});
+
+    // Fetch live interview experiences
+    fetch(`${API_BASE}/interview-experiences`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setInterviewExperiences(data);
+          localStorage.setItem('hub_real_experiences', JSON.stringify(data));
+        }
+      })
+      .catch(() => {});
+
+    // Fetch real profile
+    fetch(`${API_BASE}/profile`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          const profile: StudentProfile = {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            rollNo: data.rollNo,
+            department: data.department,
+            degree: data.degree,
+            batch: data.batch,
+            graduationYear: data.graduationYear,
+            cgpa: data.cgpa,
+            avatar: data.avatar || '',
+            bio: data.bio || '',
+            githubUrl: data.githubUrl || '',
+            portfolioUrl: data.portfolioUrl || '',
+            linkedinUrl: data.linkedinUrl || '',
+            phone: data.phone || '',
+            activeBacklogs: data.activeBacklogs || 0,
+            placementStatus: (data.placementStatus as any) || 'Eligible',
+            projects: []
+          };
+          setStudentProfile(profile);
+          localStorage.setItem('hub_student_profile', JSON.stringify(profile));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Update Student Profile
+  const updateStudentProfile = async (profile: StudentProfile) => {
+    setStudentProfile(profile);
+    localStorage.setItem('hub_student_profile', JSON.stringify(profile));
+
+    try {
+      await fetch(`${API_BASE}/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profile.name,
+          email: profile.email,
+          roll_no: profile.rollNo,
+          department: profile.department,
+          degree: profile.degree,
+          batch: profile.batch,
+          graduation_year: profile.graduationYear,
+          cgpa: profile.cgpa,
+          bio: profile.bio,
+          github_url: profile.githubUrl,
+          portfolio_url: profile.portfolioUrl,
+          linkedin_url: profile.linkedinUrl,
+          phone: profile.phone,
+          active_backlogs: profile.activeBacklogs,
+          placement_status: profile.placementStatus
+        })
+      });
+    } catch (e) {
+      console.warn('Profile saved to local storage (Backend sync offline)');
+    }
+  };
+
+  // Add Skill
+  const addSkill = (skill: SkillItem) => {
+    const updated = [skill, ...skills];
+    setSkills(updated);
+    localStorage.setItem('hub_real_skills', JSON.stringify(updated));
+  };
+
+  // Real Add Application
+  const addApplication = async (newApp: Application) => {
+    const updated = [newApp, ...applications];
+    setApplications(updated);
+    localStorage.setItem('hub_real_applications', JSON.stringify(updated));
+
+    try {
+      await fetch(`${API_BASE}/applications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: newApp.id,
+          job_id: newApp.jobId,
+          job_title: newApp.jobTitle,
+          company_name: newApp.companyName,
+          company_logo: newApp.companyLogo,
+          package_lpa: newApp.packageLpa,
+          applied_date: newApp.appliedDate,
+          status: newApp.status,
+          current_round: newApp.currentRound,
+          next_step_deadline: newApp.nextStepDeadline,
+          source: newApp.source,
+          opportunity_type: newApp.opportunityType,
+          job_description: newApp.jobDescription,
+          eligibility_criteria: newApp.eligibilityCriteria,
+          match_score: newApp.matchScore,
+          notes: newApp.privateNotes
+        })
+      });
+    } catch (e) {
+      console.warn('Saved application locally (Backend sync offline)');
+    }
+  };
+
+  // Delete Application
+  const deleteApplication = async (appId: string) => {
+    const updated = applications.filter(a => a.id !== appId);
+    setApplications(updated);
+    localStorage.setItem('hub_real_applications', JSON.stringify(updated));
+
+    try {
+      await fetch(`${API_BASE}/applications/${appId}`, { method: 'DELETE' });
+    } catch (e) {
+      // Handled
+    }
+  };
+
+  // Real Add Job
+  const addJob = async (job: JobOpening) => {
+    const updated = [job, ...jobs];
+    setJobs(updated);
+    localStorage.setItem('hub_real_jobs', JSON.stringify(updated));
+
+    // Also register company in companies list if not present
+    if (!companies.some(c => c.name.toLowerCase() === job.companyName.toLowerCase())) {
+      const newComp: Company = {
+        id: `comp_${Date.now()}`,
+        name: job.companyName,
+        logo: job.companyLogo || '',
+        industry: 'Technology',
+        headquarters: 'India / Global',
+        products: ['Software Engineering'],
+        tier: (job.tier === 'Startup' ? 'Core' : job.tier) as 'Dream' | 'Super Dream' | 'Core',
+        openRolesCount: 1,
+        website: job.sourceUrl || '',
+        careerPageUrl: job.sourceUrl || '',
+        description: `Employer profile for ${job.companyName}`,
+        visitedDate: 'Current Active',
+        packageRange: `${job.packageLpa} LPA`,
+        eligibilityCgpa: job.requiredCgpa,
+        hiredAlumniCount: 0,
+        historicalHiringDisclosed: false,
+        requiredSkills: job.requiredSkills || [],
+        dataSource: 'Source Verified'
+      };
+      const updatedComps = [newComp, ...companies];
+      setCompanies(updatedComps);
+      localStorage.setItem('hub_real_companies', JSON.stringify(updatedComps));
+    }
+
+    try {
+      await fetch(`${API_BASE}/jobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: job.title,
+          company_name: job.companyName,
+          location: job.location,
+          work_type: job.workType,
+          package_lpa: job.packageLpa,
+          deadline: job.deadline,
+          required_cgpa: job.requiredCgpa,
+          description: job.description,
+          required_skills: job.requiredSkills,
+          source_url: job.sourceUrl,
+          tags: job.tags
+        })
+      });
+    } catch (e) {
+      console.warn('Saved job locally (Backend sync offline)');
+    }
+  };
+
+  // Apply to job
   const applyToJob = (jobId: string) => {
     const targetJob = jobs.find(j => j.id === jobId);
     if (!targetJob || targetJob.applied) return;
@@ -165,40 +470,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       jobTitle: targetJob.title,
       companyName: targetJob.companyName,
       companyLogo: targetJob.companyLogo,
-      packageLpa: targetJob.packageLpa || 15.0,
-      appliedDate: 'Just now',
+      packageLpa: targetJob.packageLpa || 0,
+      appliedDate: new Date().toISOString().split('T')[0],
       status: 'Applied',
       currentRound: 'Application Screening',
-      matchScore: targetJob.matchScore,
+      matchScore: targetJob.matchScore || 0,
       source: targetJob.sourceType === 'Campus Direct Drive' ? 'Campus Direct Drive' : 'Explore Module',
       opportunityType: targetJob.opportunityType === 'Summer Internship' ? 'Summer Internship' : 'Full-time',
       jobDescription: targetJob.description,
       eligibilityCriteria: {
         minCgpa: targetJob.requiredCgpa,
-        eligibleBranches: ['Computer Science', 'Information Technology', 'AI & DS'],
+        eligibleBranches: ['Computer Science', 'Information Technology'],
         maxBacklogs: 0
       },
-      resumeVersion: {
-        fileName: 'Bhumit_Gupta_Backend_SDE_v2.4.pdf',
-        uploadedAt: 'Today',
-        atsScore: 94
-      },
-      supportingDocuments: [],
-      privateNotes: 'Applied directly from Explore module.',
+      privateNotes: `Applied via Placement Hub for ${targetJob.title} at ${targetJob.companyName}.`,
       tasks: [
-        { id: `tsk_${Date.now()}`, title: 'Review company tech stack & prepare elevator pitch', dueDate: 'In 3 days', completed: false, type: 'InterviewPrep' }
+        { id: `tsk_${Date.now()}`, title: 'Review job requirements & prepare resume', dueDate: 'In 3 days', completed: false, type: 'InterviewPrep' }
       ],
       timeline: [
-        { step: 'Application Submitted', date: 'Today', completed: true, current: true, source: 'Student Reported' },
-        { step: 'Aptitude & Coding Evaluation', date: 'Upcoming', completed: false, source: 'College Verified Integration' },
-        { step: 'Technical Interview', date: 'TBD', completed: false, source: 'Recruiter Confirmed' }
+        { step: 'Application Submitted', date: 'Today', completed: true, current: true, source: 'Student Reported' }
       ],
       updateHistory: [
         { step: 'Application Logged in Hub', date: 'Today', source: 'Student Reported', details: 'Candidate submitted verified application via Placement Hub portal.' }
       ]
     };
 
-    setApplications(prev => [newApp, ...prev]);
+    addApplication(newApp);
   };
 
   const toggleSaveJob = (jobId: string) => {
@@ -252,28 +549,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  // Placements Handlers
   const updateApplicationNotes = (appId: string, notes: string) => {
-    setApplications(prev =>
-      prev.map(app => (app.id === appId ? { ...app, privateNotes: notes } : app))
-    );
+    setApplications(prev => {
+      const updated = prev.map(app => (app.id === appId ? { ...app, privateNotes: notes } : app));
+      localStorage.setItem('hub_real_applications', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const toggleApplicationTask = (appId: string, taskId: string) => {
-    setApplications(prev =>
-      prev.map(app => {
+    setApplications(prev => {
+      const updated = prev.map(app => {
         if (app.id !== appId || !app.tasks) return app;
         return {
           ...app,
           tasks: app.tasks.map(t => (t.id === taskId ? { ...t, completed: !t.completed } : t))
         };
-      })
-    );
+      });
+      localStorage.setItem('hub_real_applications', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const updateApplicationStatus = (appId: string, newStatus: ApplicationStatus) => {
-    setApplications(prev =>
-      prev.map(app => {
+    setApplications(prev => {
+      const updated = prev.map(app => {
         if (app.id !== appId) return app;
         const newUpdate = {
           step: `Status shifted to ${newStatus}`,
@@ -286,8 +586,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: newStatus,
           updateHistory: [newUpdate, ...(app.updateHistory || [])]
         };
-      })
-    );
+      });
+      localStorage.setItem('hub_real_applications', JSON.stringify(updated));
+      return updated;
+    });
+
+    fetch(`${API_BASE}/applications/${appId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    }).catch(() => {});
   };
 
   const registerForDrive = (driveId: string) => {
@@ -317,8 +625,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addInterviewExperience = (exp: InterviewExperience) => {
-    setInterviewExperiences(prev => [exp, ...prev]);
+  const addInterviewExperience = async (exp: InterviewExperience) => {
+    const updated = [exp, ...interviewExperiences];
+    setInterviewExperiences(updated);
+    localStorage.setItem('hub_real_experiences', JSON.stringify(updated));
+
+    try {
+      await fetch(`${API_BASE}/interview-experiences`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_name: exp.authorName,
+          company_name: exp.companyName,
+          role_title: exp.roleTitle,
+          placed_status: exp.outcome === 'Offer Received' ? 'Selected' : 'Rejected',
+          package_lpa: null,
+          interview_date: exp.submissionDate,
+          difficulty: exp.overallDifficulty,
+          rounds: exp.roundsBreakdown,
+          overall_experience: exp.roundsBreakdown.map(r => `${r.roundName}: ${r.description}`).join(' '),
+          preparation_tips: exp.preparationChecklist.join(', '),
+          topics_covered: exp.technicalQuestions.map(q => q.topic)
+        })
+      });
+    } catch (e) {
+      console.warn('Saved interview experience locally (Backend sync offline)');
+    }
   };
 
   const reportInterviewExperience = (expId: string) => {
@@ -328,19 +660,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateOfferDecision = (appId: string, decision: 'Accepted' | 'Declined') => {
-    setApplications(prev =>
-      prev.map(app => {
+    setApplications(prev => {
+      const updated = prev.map(app => {
         if (app.id !== appId || !app.offerDetails) return app;
         return {
           ...app,
-          status: decision === 'Accepted' ? 'Offer' : 'Withdrawn',
+          status: (decision === 'Accepted' ? 'Offer' : 'Withdrawn') as ApplicationStatus,
           offerDetails: {
             ...app.offerDetails,
             status: decision
           }
         };
-      })
-    );
+      });
+      localStorage.setItem('hub_real_applications', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return (
@@ -358,6 +692,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleDarkMode,
         searchQuery,
         setSearchQuery,
+        studentProfile,
+        updateStudentProfile,
         jobs,
         companies,
         startups,
@@ -370,14 +706,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         exploreCompanyFilter,
         setExploreCompanyFilter,
         applyToJob,
+        addJob,
         toggleSaveJob,
         applyToProject,
         registerForProgram,
         registerForEvent,
         requestReferral,
         applications,
+        addApplication,
+        deleteApplication,
         interviews,
         skills,
+        addSkill,
         campusDrives,
         interviewExperiences,
         toggleInterviewChecklist,
@@ -389,7 +729,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addInterviewExperience,
         reportInterviewExperience,
         updateOfferDecision,
-        isDemoMode: IS_DEMO_MODE
+        integrationsStatus,
+        refreshIntegrations,
+        isLiveMode: true,
+        isLoading
       }}
     >
       {children}

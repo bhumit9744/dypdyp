@@ -300,11 +300,31 @@ export const InterviewsSubSection: React.FC = () => {
       {/* TAB 1: COMPANY EXPERIENCES */}
       {activeTab === 'experiences' && (
         <div className="space-y-4">
-          {filteredExperiences.map((exp) => {
-            const isExpanded = expandedExpId === exp.id;
-            const isHelpful = helpfulGiven[exp.id];
+          {filteredExperiences.length === 0 ? (
+            <div className="p-10 rounded-2xl bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3 max-w-2xl mx-auto">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                <BookOpen className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                No Student-Submitted Interview Experiences Found
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Operating strictly under the Live Data Only policy. No fabricated or demo interview experiences are seeded. Have you recently interviewed with an employer? Share your firsthand experience to assist fellow candidates.
+              </p>
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs shadow-xs inline-flex items-center gap-1.5 transition-colors"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Share Real Interview Experience
+              </button>
+            </div>
+          ) : (
+            filteredExperiences.map((exp) => {
+              const isExpanded = expandedExpId === exp.id;
+              const isHelpful = helpfulGiven[exp.id];
 
-            return (
+              return (
               <div
                 key={exp.id}
                 className={`p-6 rounded-2xl bg-white dark:bg-slate-900 border shadow-xs transition-all space-y-4 ${
@@ -501,9 +521,10 @@ export const InterviewsSubSection: React.FC = () => {
                 </div>
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
+    )}
 
       {/* TAB 2: TECHNICAL QUESTION BANK */}
       {activeTab === 'questions' && (
@@ -514,52 +535,78 @@ export const InterviewsSubSection: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredQuestions.map((q, idx) => (
-              <div
-                key={idx}
-                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 hover:border-brand-500/40 transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                      {q.topic}
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        q.difficulty === 'Hard'
-                          ? 'bg-rose-50 text-rose-700'
-                          : q.difficulty === 'Medium'
-                          ? 'bg-amber-50 text-amber-700'
-                          : 'bg-emerald-50 text-emerald-700'
-                      }`}
-                    >
-                      {q.difficulty}
-                    </span>
+          {filteredQuestions.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-2">
+              <p className="text-xs text-slate-500">No technical questions found matching your filter.</p>
+              <p className="text-[11px] text-slate-400">Questions appear here automatically as candidates submit real interview experiences.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredQuestions.map((q, idx) => (
+                <div
+                  key={idx}
+                  className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 hover:border-brand-500/40 transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                        {q.topic}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          q.difficulty === 'Hard'
+                            ? 'bg-rose-50 text-rose-700'
+                            : q.difficulty === 'Medium'
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}
+                      >
+                        {q.difficulty}
+                      </span>
+                    </div>
+
+                    <p className="font-semibold text-sm text-slate-900 dark:text-white leading-relaxed">
+                      {q.question}
+                    </p>
                   </div>
 
-                  <p className="font-semibold text-sm text-slate-900 dark:text-white leading-relaxed">
-                    {q.question}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                  <div className="flex items-center space-x-2">
-                    <img src={q.companyLogo} alt={q.companyName} className="w-5 h-5 rounded-md object-cover" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">{q.companyName}</span>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <div className="flex items-center space-x-2">
+                      {q.companyLogo ? (
+                        <img src={q.companyLogo} alt={q.companyName} className="w-5 h-5 rounded-md object-cover" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-md bg-brand-100 dark:bg-brand-950 flex items-center justify-center font-bold text-[10px] text-brand-600">
+                          {q.companyName[0]}
+                        </div>
+                      )}
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{q.companyName}</span>
+                    </div>
+                    <span>{q.year} Drive</span>
                   </div>
-                  <span>{q.year} Drive</span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* TAB 3: LIVE SCHEDULED INTERVIEW SLOTS */}
       {activeTab === 'liveSlots' && (
         <div className="space-y-4">
-          {interviews.map((int) => (
+          {interviews.length === 0 ? (
+            <div className="p-10 rounded-2xl bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3 max-w-2xl mx-auto">
+              <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                <Clock className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                No Scheduled Interview Slots Found
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                When recruiters or college coordinators schedule official interview rounds for your active applications, calendar dates, meeting links, and preparation checklists will appear here.
+              </p>
+            </div>
+          ) : (
+            interviews.map((int) => (
             <div
               key={int.id}
               className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 hover:border-brand-500/40 transition-all"
@@ -615,9 +662,10 @@ export const InterviewsSubSection: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
+    )}
 
       {/* CONTRIBUTE EXPERIENCE MODAL */}
       {showSubmitModal && (

@@ -310,13 +310,13 @@ export interface Application {
   jobId: string;
   jobTitle: string;
   companyName: string;
-  companyLogo: string;
+  companyLogo?: string;
   packageLpa: number;
   appliedDate: string;
   status: ApplicationStatus;
   currentRound: string;
   nextStepDeadline?: string;
-  matchScore: number;
+  matchScore?: number;
   source?: 'Campus Direct Drive' | 'Off-Campus Drive' | 'Alumni Referral' | 'Explore Module';
   opportunityType?: 'Full-time' | 'Summer Internship' | '6-Month Co-op';
   jobDescription?: string;
@@ -457,4 +457,30 @@ export interface InterviewExperience {
   verificationBadge: 'Student Reported' | 'TPO Verified Experience';
   helpfulCount: number;
   isReported?: boolean;
+}
+
+export interface IntegrationsStatus {
+  backend_db: {
+    status: string;
+    engine?: string;
+    records?: Record<string, number>;
+    message?: string;
+  };
+  claude_api: {
+    status: 'connected' | 'disconnected' | 'error';
+    configured: boolean;
+    provider: string;
+    model: string;
+    message: string;
+  };
+  college_tpo_api: {
+    status: string;
+    provider: string;
+    message: string;
+  };
+  external_job_boards: {
+    status: string;
+    provider: string;
+    message: string;
+  };
 }
