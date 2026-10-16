@@ -18,18 +18,22 @@ import {
   Layers,
   Bug,
   Database,
-  Network
+  Network,
+  Briefcase,
+  Users
 } from 'lucide-react';
 import { QuizConfig, UserQuizStats, QuizResultData } from './types/quiz';
 import { BugHunterConfig, UserBugHunterStats } from './types/bugHunter';
 import { AlgorithmRushConfig, UserAlgorithmRushStats } from './types/algorithmRush';
+import { UserHRStats } from './types/hrInterview';
 import { loadUserQuizStats, clearQuizHistory } from './utils/quizStorage';
 import { loadUserBugStats } from './utils/bugHunterStorage';
 import { loadUserAlgoStats } from './utils/algorithmRushStorage';
+import { loadUserHRStats } from './utils/hrInterviewStorage';
 import { DailyChallengeCard } from './components/DailyChallengeCard';
 
 interface TechArenaDashboardProps {
-  onLaunchGame: (gameId: 'code-quiz' | 'daily' | 'bug-hunter' | 'algorithm-rush', config?: any) => void;
+  onLaunchGame: (gameId: 'code-quiz' | 'daily' | 'bug-hunter' | 'algorithm-rush' | 'hr-interview', config?: any) => void;
   onReviewPastResult?: (result: QuizResultData) => void;
 }
 
@@ -40,11 +44,13 @@ export const TechArenaDashboard: React.FC<TechArenaDashboardProps> = ({
   const [stats, setStats] = useState<UserQuizStats>(loadUserQuizStats());
   const [bugStats, setBugStats] = useState<UserBugHunterStats>(loadUserBugStats());
   const [algoStats, setAlgoStats] = useState<UserAlgorithmRushStats>(loadUserAlgoStats());
+  const [hrStats, setHrStats] = useState<UserHRStats>(loadUserHRStats());
 
   useEffect(() => {
     setStats(loadUserQuizStats());
     setBugStats(loadUserBugStats());
     setAlgoStats(loadUserAlgoStats());
+    setHrStats(loadUserHRStats());
   }, []);
 
   const handleClearHistory = () => {
@@ -54,9 +60,9 @@ export const TechArenaDashboard: React.FC<TechArenaDashboardProps> = ({
     }
   };
 
-  const totalCombinedXp = stats.totalXpEarned + bugStats.totalXpEarned + algoStats.totalXpEarned;
-  const totalCombinedAttempted = stats.totalQuestionsAttempted + bugStats.totalChallengesAttempted + algoStats.totalChallengesAttempted;
-  const totalCombinedCorrect = stats.totalCorrect + bugStats.totalCorrect + algoStats.totalCorrect;
+  const totalCombinedXp = stats.totalXpEarned + bugStats.totalXpEarned + algoStats.totalXpEarned + hrStats.totalXpEarned;
+  const totalCombinedAttempted = stats.totalQuestionsAttempted + bugStats.totalChallengesAttempted + algoStats.totalChallengesAttempted + hrStats.totalQuestionsAnswered;
+  const totalCombinedCorrect = stats.totalCorrect + bugStats.totalCorrect + algoStats.totalCorrect + Math.round((hrStats.overallAverage / 100) * hrStats.totalQuestionsAnswered);
   const combinedAccuracy = totalCombinedAttempted > 0
     ? Math.round((totalCombinedCorrect / totalCombinedAttempted) * 100)
     : stats.overallAccuracy;
@@ -328,30 +334,67 @@ export const TechArenaDashboard: React.FC<TechArenaDashboardProps> = ({
             </div>
           </div>
 
-          {/* GAME 4: System Architecture Duel (Upcoming preview) */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 opacity-80">
+          {/* GAME 4: HR Interview Showdown (Playable Now) */}
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border-2 border-indigo-500/80 shadow-md shadow-indigo-500/5 hover:border-indigo-600 transition-all space-y-5 relative overflow-hidden group">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center space-x-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center shrink-0">
-                  <Network className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                  <Briefcase className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500">
-                    Preview Module
-                  </span>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
-                    System Architecture Duel
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200/60">
+                      Playable Now • 80 Placement Scenarios
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      STAR Method • 4 Modes
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">
+                    HR Interview Showdown
                   </h3>
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
-                Coming Soon
+
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 shrink-0">
+                Beginner - Advanced
               </span>
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Design high-throughput distributed systems, configure Redis caching, and eliminate single points of failure under traffic spikes.
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              <em>Your next placement starts with how you answer.</em> Master campus placement HR rounds, behavioural STAR responses, situational dilemmas, and high-stakes recruiter interviews with transparent rubric evaluation.
             </p>
+
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800">
+                🗣️ Core HR Interview
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800">
+                ⚡ Rapid Fire HR
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800">
+                🏢 Workplace Situations
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800">
+                🎯 Difficult HR Round
+              </span>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-semibold text-slate-400">
+                {hrStats.totalSessionsCompleted > 0
+                  ? `${hrStats.totalSessionsCompleted} sessions completed • ${hrStats.overallAverage}% avg`
+                  : 'Interactive Placement Simulation'}
+              </span>
+
+              <button
+                onClick={() => onLaunchGame('hr-interview')}
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-500/25 transition-all flex items-center space-x-1.5 cursor-pointer"
+              >
+                <span>Start Challenge</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
         </div>
