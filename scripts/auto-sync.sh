@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO_DIR="/home/iamironman/dypdyp"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_DIR"
 
 # Explicit user approval gate to prevent unauthorized auto-push

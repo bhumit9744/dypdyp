@@ -1,0 +1,4 @@
+# Auto-sync approval gate
+APPROVED=true
+INTERVAL_MINUTES=30
+APPROVED_AT=2026-10-17T03:58:08+05:30
