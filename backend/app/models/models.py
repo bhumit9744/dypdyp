@@ -565,3 +565,126 @@ class RoadmapChange(Base):
     accepted = Column(Boolean, default=True)
 
     roadmap = relationship("StudentRoadmap", back_populates="changes")
+
+# ==========================================
+# AI CAREER GUIDANCE MODELS
+# ==========================================
+
+class CareerGuidanceProfile(Base):
+    __tablename__ = "career_guidance_profiles"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, unique=True, index=True)
+    interests = Column(JSON, default=list) # e.g. ["Building web apps", "Data analysis", "UX research"]
+    preferred_activities = Column(JSON, default=list) # e.g. ["Coding", "System design", "Visual styling"]
+    disliked_activities = Column(JSON, default=list) # e.g. ["Low-level assembly", "Sales calls"]
+    technical_skills = Column(JSON, default=list)
+    soft_skills = Column(JSON, default=list)
+    academic_focus = Column(JSON, default=list)
+    practical_experiences = Column(JSON, default=list)
+    weekly_hours_available = Column(Integer, default=15)
+    preparation_timeline = Column(String, default="6 Months") # "3 Months", "6 Months", "1 Year"
+    preferred_learning_format = Column(String, default="Project-first") # "Project-first", "Guided Videos", "Interactive Labs"
+    preparation_challenges = Column(JSON, default=list) # e.g. ["Time management", "DSA fundamentals"]
+    immediate_priority = Column(String, default="Skill Development") # "Exploration", "Internship", "Placement", "Skill Development"
+    target_companies = Column(JSON, default=list)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class CareerGoal(Base):
+    __tablename__ = "career_goals"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    career_id = Column(String, nullable=False, index=True) # e.g. "role_fullstack", "role_aiml"
+    career_title = Column(String, nullable=False)
+    is_primary = Column(Boolean, default=True) # True = Primary Goal, False = Alternate/Exploratory
+    selection_reasons = Column(JSON, default=list)
+    uncertainties = Column(JSON, default=list)
+    status = Column(String, default="Active") # "Active", "Exploring", "Archived"
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class CareerComparisonRecord(Base):
+    __tablename__ = "career_comparisons"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    career_ids = Column(JSON, default=list) # list of 2 or 3 career role IDs
+    notes = Column(Text, nullable=True)
+    attraction_points = Column(JSON, default=dict) # { role_id: "What attracts me" }
+    concern_points = Column(JSON, default=dict) # { role_id: "What concerns me" }
+    unanswered_questions = Column(JSON, default=list)
+    selected_primary_id = Column(String, nullable=True)
+    selected_alternate_id = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class CareerExperiment(Base):
+    __tablename__ = "career_experiments"
+
+    id = Column(String, primary_key=True, index=True)
+    career_category = Column(String, nullable=False) # "Software Development", "UI/UX Design", "AI/ML and Data", "Cybersecurity", "Cloud and DevOps"
+    title = Column(String, nullable=False)
+    difficulty = Column(String, default="Beginner") # "Beginner", "Intermediate"
+    expected_duration = Column(String, default="45-60 mins")
+    learning_objective = Column(Text, nullable=False)
+    prerequisites = Column(JSON, default=list)
+    instructions = Column(JSON, default=list) # Ordered step-by-step guidance
+    required_tools = Column(JSON, default=list) # Free tools needed (e.g. Browser, VS Code, Figma Free)
+    expected_deliverable = Column(Text, nullable=False)
+    completion_criteria = Column(JSON, default=list)
+    resources = Column(JSON, default=list)
+
+class StudentCareerExperiment(Base):
+    __tablename__ = "student_career_experiments"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    experiment_id = Column(String, ForeignKey("career_experiments.id"), nullable=False, index=True)
+    status = Column(String, default="Not Started") # "Not Started", "In Progress", "Completed"
+    reflection_enjoyed = Column(Text, nullable=True)
+    reflection_difficult = Column(Text, nullable=True)
+    reflection_matched_expectations = Column(String, nullable=True) # "Exceeded", "Matched", "Different than expected"
+    reflection_would_advance = Column(Boolean, default=True)
+    reflection_next_learning = Column(Text, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+class CareerGuidanceConversation(Base):
+    __tablename__ = "career_guidance_conversations"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    title = Column(String, default="Career Guidance Session")
+    messages = Column(JSON, default=list) # Array of { id, sender, text, timestamp, structured_sections, contextual_actions }
+    saved_summary = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class CareerGuidanceAction(Base):
+    __tablename__ = "career_guidance_actions"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    explanation = Column(Text, nullable=False)
+    why_it_matters = Column(Text, nullable=False)
+    estimated_effort = Column(String, default="2-3 hours")
+    suggested_deadline = Column(String, nullable=True)
+    related_career = Column(String, nullable=True)
+    related_skill = Column(String, nullable=True)
+    status = Column(String, default="Pending") # "Pending", "In Progress", "Completed"
+    transferred_to_roadmap = Column(Boolean, default=False)
+    roadmap_task_id = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class CareerDecisionHistory(Base):
+    __tablename__ = "career_decision_history"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    decision_type = Column(String, nullable=False) # "Goal Selected", "Goal Updated", "Comparison Saved", "Experiment Completed", "Action Plan Created"
+    previous_goal = Column(String, nullable=True)
+    new_goal = Column(String, nullable=True)
+    explanation = Column(Text, nullable=False)
+    associated_role_id = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)

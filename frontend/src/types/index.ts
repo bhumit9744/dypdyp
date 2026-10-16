@@ -2,7 +2,7 @@ export type Role = 'student' | 'coordinator';
 
 export type NavSection = 'dashboard' | 'career' | 'explore' | 'placements' | 'arena';
 
-export type CareerSubSection = 'profile' | 'career-roadmap' | 'skills' | 'resume' | 'assessments' | 'career-prep' | 'interview-studio';
+export type CareerSubSection = 'profile' | 'career-guidance' | 'career-roadmap' | 'skills' | 'resume' | 'assessments' | 'career-prep' | 'interview-studio';
 
 export type ExploreSubSection =
   | 'jobs-internships'

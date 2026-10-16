@@ -7,6 +7,7 @@ from .api.endpoints import router as api_router
 from .api.interview_endpoints import router as interview_router
 from .api.roadmap_endpoints import router as roadmap_router
 from .api.resume_endpoints import router as resume_router
+from .api.guidance_endpoints import router as guidance_router
 
 # Initialize database tables and columns
 init_db_schema()
@@ -30,6 +31,7 @@ app.include_router(api_router, prefix="/api/v1")
 app.include_router(interview_router, prefix="/api/v1")
 app.include_router(roadmap_router, prefix="/api/v1")
 app.include_router(resume_router, prefix="/api/v1")
+app.include_router(guidance_router, prefix="/api/v1")
 
 @app.get("/")
 def root():

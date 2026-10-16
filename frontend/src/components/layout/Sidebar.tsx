@@ -27,7 +27,8 @@ import {
   Sun,
   Moon,
   User,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection } from '../../types';
@@ -92,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       defaultSub: 'profile',
       subItems: [
         { id: 'profile', label: 'Profile & Academics', icon: GraduationCap },
+        { id: 'career-guidance', label: 'AI Career Guidance', icon: Sparkles, badge: 'Counsellor' },
         { id: 'career-roadmap', label: 'AI Roadmap Planner', icon: Compass, badge: 'AI Plan' },
         { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, badge: `${skills.filter(s => s.verified).length || skills.length}` },
         { id: 'resume', label: 'ATS Resume Builder', icon: FileText, badge: '92 ATS' },
