@@ -154,6 +154,7 @@ export const InterviewStudioSubSection: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<InterviewSession | null>(null);
   const [activeTurn, setActiveTurn] = useState<InterviewTurn | null>(null);
   const [interviewerState, setInterviewerState] = useState<'idle' | 'speaking' | 'listening' | 'evaluating'>('idle');
+  const [interviewerPersona, setInterviewerPersona] = useState<'sarah' | 'alex' | 'nova' | 'jarvis'>('sarah');
   const [turnTranscript, setTurnTranscript] = useState<string>('');
   const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [inputMode, setInputMode] = useState<'voice' | 'text_fallback'>('voice');
@@ -348,11 +349,16 @@ export const InterviewStudioSubSection: React.FC = () => {
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    // Pick pleasant natural voice
+    // Pick pleasant natural voice matching persona
     const voices = window.speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha')));
-    if (englishVoice) {
-      utterance.voice = englishVoice;
+    let matchedVoice;
+    if (interviewerPersona === 'alex') {
+      matchedVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('David') || v.name.includes('Mark') || v.name.includes('Guy') || v.name.includes('Male') || v.name.includes('George')));
+    } else {
+      matchedVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Female') || v.name.includes('Jenny') || v.name.includes('Google')));
+    }
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
     }
 
     utterance.onstart = () => {
@@ -1015,6 +1021,17 @@ export const InterviewStudioSubSection: React.FC = () => {
             </div>
           )}
 
+          {/* API / Backend Connection Error */}
+          {apiError && (
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/40 text-xs text-rose-800 dark:text-rose-200 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold">{apiError}</p>
+                <p className="text-[11px] text-slate-500">Ensure the backend API server is running on http://127.0.0.1:8000.</p>
+              </div>
+            </div>
+          )}
+
           {mediaError && (
             <MediaErrorBanner
               error={mediaError}
@@ -1307,7 +1324,17 @@ export const InterviewStudioSubSection: React.FC = () => {
             {/* Interviewer Panel with Docked Candidate PIP */}
             <InterviewerPanel
               state={interviewerState === 'idle' ? (mediaPhase === 'ready' ? 'ready' : 'disconnected') : interviewerState}
-              interviewerName="AI Technical Interviewer"
+              persona={interviewerPersona}
+              onPersonaChange={setInterviewerPersona}
+              interviewerName={
+                interviewerPersona === 'sarah'
+                  ? 'Sarah Jenkins'
+                  : interviewerPersona === 'alex'
+                  ? 'Alex Vance'
+                  : interviewerPersona === 'nova'
+                  ? 'Nova 3D Digital Human'
+                  : 'JARVIS Core'
+              }
               interviewerRole={currentSession?.role_target ? `${currentSession.role_target} Assessment` : 'Technical Evaluation'}
               callDurationSeconds={callElapsedSeconds}
               onSkipAudio={stopInterviewerSpeaking}

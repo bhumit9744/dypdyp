@@ -3,6 +3,7 @@ import { useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { SubNav } from './components/layout/SubNav';
 import { Menu } from 'lucide-react';
+import { JarvisVoiceAssistant } from './components/jarvis/JarvisVoiceAssistant';
 
 // Dashboard
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -152,6 +153,9 @@ export const AppContent: React.FC = () => {
           </footer>
         </main>
       </div>
+
+      {/* Global Jarvis Voice & Executive Agent (Wake-word, LinkedIn & Mail plugins) */}
+      <JarvisVoiceAssistant />
     </div>
   );
 };

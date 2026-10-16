@@ -380,6 +380,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
           })}
         </div>
 
+        {/* JARVIS Voice & Executive Agent Quick Launch */}
+        <div className="px-3 pb-2 shrink-0">
+          {(!isSidebarCollapsed || mobileOpen) ? (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-jarvis'))}
+              className="w-full p-2.5 rounded-2xl bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 border border-cyan-500/40 text-left hover:border-cyan-400 transition-all shadow-md group relative overflow-hidden"
+            >
+              <div className="flex items-center space-x-2.5 relative z-10">
+                <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-400/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Bot className="w-4 h-4 text-cyan-300 animate-pulse" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-extrabold text-cyan-300 tracking-wide">JARVIS AI</p>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
+                      LIVE
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 truncate">Voice • LinkedIn • Mails</p>
+                </div>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-jarvis'))}
+              className="w-full flex items-center justify-center p-2 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-400 hover:text-white"
+              title="Launch JARVIS AI Voice Agent"
+            >
+              <Bot className="w-5 h-5 animate-pulse" />
+            </button>
+          )}
+        </div>
+
         {/* User Profile & Placement Session Footer */}
         <div className="p-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
           {(!isSidebarCollapsed || mobileOpen) ? (
