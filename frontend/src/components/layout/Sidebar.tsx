@@ -92,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       defaultSub: 'profile',
       subItems: [
         { id: 'profile', label: 'Profile & Academics', icon: GraduationCap },
+        { id: 'career-roadmap', label: 'AI Roadmap Planner', icon: Compass, badge: 'AI Plan' },
         { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, badge: `${skills.filter(s => s.verified).length || skills.length}` },
         { id: 'resume', label: 'ATS Resume Builder', icon: FileText, badge: '92 ATS' },
         { id: 'assessments', label: 'Assessments', icon: Award, badge: '4' },

@@ -17,7 +17,8 @@ import {
   Trophy,
   Code2,
   Gamepad2,
-  Bot
+  Bot,
+  Compass
 } from 'lucide-react';
 import { SubSection } from '../../types';
 
@@ -47,6 +48,7 @@ export const SubNav: React.FC = () => {
   > = {
     career: [
       { id: 'profile', label: 'Profile & Academics', icon: GraduationCap },
+      { id: 'career-roadmap', label: 'AI Career Roadmap Planner', icon: Compass },
       { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, count: skills.length },
       { id: 'resume', label: 'ATS Resume Builder', icon: FileText },
       { id: 'assessments', label: 'Assessments', icon: Award, count: 4 },

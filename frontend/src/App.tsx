@@ -14,6 +14,7 @@ import { ResumeSubSection } from './pages/career/ResumeSubSection';
 import { AssessmentsSubSection } from './pages/career/AssessmentsSubSection';
 import { CareerPrepSubSection } from './pages/career/CareerPrepSubSection';
 import { InterviewStudioSubSection } from './pages/career/InterviewStudioSubSection';
+import { AICareerRoadmapPlanner } from './pages/career/AICareerRoadmapPlanner';
 
 // Explore Subsections (6 Modules)
 import { JobsInternshipsSubSection } from './pages/explore/JobsInternshipsSubSection';
@@ -43,6 +44,8 @@ export const AppContent: React.FC = () => {
 
       case 'career':
         switch (currentSubSection) {
+          case 'career-roadmap':
+            return <AICareerRoadmapPlanner />;
           case 'skills':
             return <SkillsSubSection />;
           case 'resume':

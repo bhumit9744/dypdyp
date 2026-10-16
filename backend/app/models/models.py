@@ -41,6 +41,7 @@ class Student(Base):
     applications = relationship("Application", back_populates="student", cascade="all, delete-orphan")
     assessment_results = relationship("AssessmentResult", back_populates="student", cascade="all, delete-orphan")
     interview_sessions = relationship("InterviewSession", back_populates="student", cascade="all, delete-orphan")
+    roadmaps = relationship("StudentRoadmap", back_populates="student", cascade="all, delete-orphan")
 
 class Project(Base):
     __tablename__ = "projects"
@@ -357,3 +358,180 @@ class InterviewVisionMetric(Base):
     notes = Column(String, default="Camera positioning indicator only; not factored into candidate interview score.")
 
     session = relationship("InterviewSession", back_populates="vision_metrics")
+
+# =========================================================
+# AI Career Roadmap Planner Models
+# =========================================================
+
+class CareerTrack(Base):
+    __tablename__ = "career_tracks"
+
+    id = Column(String, primary_key=True, index=True)
+    title = Column(String, nullable=False, unique=True)
+    description = Column(Text, nullable=False)
+    category = Column(String, nullable=False) # "Engineering", "Design", "Data & AI", "Cloud & Security", "Quality"
+    level = Column(String, default="Beginner-friendly") # "Beginner-friendly", "Intermediate", "Advanced"
+    estimated_duration_range = Column(String, default="3-6 Months")
+    core_skills = Column(JSON, default=list)
+    prerequisites = Column(JSON, default=list)
+    typical_project_outcomes = Column(JSON, default=list)
+    template_phases = Column(JSON, default=list)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class StudentRoadmap(Base):
+    __tablename__ = "student_roadmaps"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    career_track_id = Column(String, nullable=True) # None if custom
+    career_title = Column(String, nullable=False)
+    custom_goal = Column(String, nullable=True)
+    specialization = Column(String, nullable=True)
+    starting_proficiency = Column(String, default="Beginner") # "Beginner", "Intermediate", "Advanced"
+    target_timeline_months = Column(Integer, default=6)
+    weekly_hours_available = Column(Integer, default=15)
+    learning_style = Column(String, default="Guided Practice") # "Reading", "Videos", "Guided Practice", "Project-First"
+    priority_focus = Column(String, default="Placements & Portfolio")
+    target_companies = Column(JSON, default=list)
+    status = Column(String, default="Active") # "Active", "Paused", "Completed"
+    current_phase_index = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    # Relationships
+    student = relationship("Student", back_populates="roadmaps")
+    phases = relationship("RoadmapPhase", back_populates="roadmap", cascade="all, delete-orphan", order_by="RoadmapPhase.phase_number")
+    projects = relationship("RoadmapProject", back_populates="roadmap", cascade="all, delete-orphan")
+    milestones = relationship("RoadmapMilestone", back_populates="roadmap", cascade="all, delete-orphan")
+    snapshots = relationship("RoadmapProgressSnapshot", back_populates="roadmap", cascade="all, delete-orphan")
+    changes = relationship("RoadmapChange", back_populates="roadmap", cascade="all, delete-orphan")
+
+class RoadmapPhase(Base):
+    __tablename__ = "roadmap_phases"
+
+    id = Column(String, primary_key=True, index=True)
+    roadmap_id = Column(String, ForeignKey("student_roadmaps.id"), nullable=False, index=True)
+    phase_number = Column(Integer, nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    why_it_matters = Column(Text, nullable=False)
+    learning_objectives = Column(JSON, default=list)
+    skills_covered = Column(JSON, default=list)
+    prerequisites = Column(JSON, default=list)
+    estimated_duration_weeks = Column(Integer, default=4)
+    practical_milestone = Column(String, nullable=False)
+    completion_criteria = Column(JSON, default=list)
+    status = Column(String, default="Upcoming") # "Upcoming", "In Progress", "Completed", "Blocked"
+
+    roadmap = relationship("StudentRoadmap", back_populates="phases")
+    tasks = relationship("RoadmapTask", back_populates="phase", cascade="all, delete-orphan", order_by="RoadmapTask.task_number")
+
+class RoadmapTask(Base):
+    __tablename__ = "roadmap_tasks"
+
+    id = Column(String, primary_key=True, index=True)
+    phase_id = Column(String, ForeignKey("roadmap_phases.id"), nullable=False, index=True)
+    roadmap_id = Column(String, nullable=False, index=True)
+    task_number = Column(Integer, nullable=False)
+    week_number = Column(Integer, default=1)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    associated_skill = Column(String, nullable=False)
+    learning_objective = Column(Text, nullable=False)
+    why_it_matters = Column(Text, nullable=False)
+    estimated_hours = Column(Float, default=3.0)
+    priority = Column(String, default="Medium") # "High", "Medium", "Low"
+    prerequisites = Column(JSON, default=list)
+    resource_ids = Column(JSON, default=list)
+    practical_exercise = Column(Text, nullable=True)
+    completion_criteria = Column(Text, nullable=False)
+    status = Column(String, default="Not Started") # "Not Started", "In Progress", "Completed", "Blocked"
+    due_date = Column(String, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    phase = relationship("RoadmapPhase", back_populates="tasks")
+
+class LearningResource(Base):
+    __tablename__ = "learning_resources"
+
+    id = Column(String, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    resource_type = Column(String, nullable=False) # "Video", "Article", "Documentation", "Course", "Tutorial", "Practice Platform", "Repository", "Other"
+    provider = Column(String, nullable=False) # e.g. "MDN", "freeCodeCamp", "Official Docs", "Coursera"
+    url = Column(String, nullable=False)
+    career_tracks = Column(JSON, default=list)
+    skills = Column(JSON, default=list)
+    difficulty = Column(String, default="Beginner") # "Beginner", "Intermediate", "Advanced"
+    language = Column(String, default="English")
+    price_status = Column(String, default="Free") # "Free", "Freemium", "Paid"
+    estimated_duration = Column(String, nullable=True)
+    tags = Column(JSON, default=list)
+    verification_status = Column(String, default="Verified Official") # "Verified Official", "Verified Platform", "Community Submitted"
+    last_reviewed = Column(DateTime, default=datetime.datetime.utcnow)
+
+class RoadmapProject(Base):
+    __tablename__ = "roadmap_projects"
+
+    id = Column(String, primary_key=True, index=True)
+    roadmap_id = Column(String, ForeignKey("student_roadmaps.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    problem_statement = Column(Text, nullable=False)
+    expected_outcome = Column(Text, nullable=False)
+    skills_practiced = Column(JSON, default=list)
+    prerequisite_tasks = Column(JSON, default=list)
+    suggested_tech = Column(JSON, default=list)
+    feature_checklist = Column(JSON, default=list)
+    definition_of_done = Column(Text, nullable=False)
+    expected_hours = Column(Integer, default=20)
+    portfolio_relevance = Column(Text, nullable=False)
+    github_url = Column(String, nullable=True)
+    demo_url = Column(String, nullable=True)
+    status = Column(String, default="Not Started") # "Not Started", "In Progress", "Completed"
+    completed_at = Column(DateTime, nullable=True)
+
+    roadmap = relationship("StudentRoadmap", back_populates="projects")
+
+class RoadmapMilestone(Base):
+    __tablename__ = "roadmap_milestones"
+
+    id = Column(String, primary_key=True, index=True)
+    roadmap_id = Column(String, ForeignKey("student_roadmaps.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    target_date = Column(String, nullable=False)
+    status = Column(String, default="Upcoming") # "Upcoming", "In Progress", "Completed", "Overdue"
+    associated_phase_or_project = Column(String, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    roadmap = relationship("StudentRoadmap", back_populates="milestones")
+
+class RoadmapProgressSnapshot(Base):
+    __tablename__ = "roadmap_progress_snapshots"
+
+    id = Column(String, primary_key=True, index=True)
+    student_id = Column(String, nullable=False, index=True)
+    roadmap_id = Column(String, ForeignKey("student_roadmaps.id"), nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    completed_task_count = Column(Integer, default=0)
+    total_task_count = Column(Integer, default=0)
+    completion_percentage = Column(Float, default=0.0)
+    completed_hours = Column(Float, default=0.0)
+    planned_hours = Column(Float, default=0.0)
+
+    roadmap = relationship("StudentRoadmap", back_populates="snapshots")
+
+class RoadmapChange(Base):
+    __tablename__ = "roadmap_changes"
+
+    id = Column(String, primary_key=True, index=True)
+    roadmap_id = Column(String, ForeignKey("student_roadmaps.id"), nullable=False, index=True)
+    change_type = Column(String, nullable=False) # "Timeline Extended", "Task Rescheduled", "Availability Updated", "Paced Accelerated", "Phase Reordered"
+    previous_state = Column(JSON, default=dict)
+    new_state = Column(JSON, default=dict)
+    reason = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    accepted = Column(Boolean, default=True)
+
+    roadmap = relationship("StudentRoadmap", back_populates="changes")

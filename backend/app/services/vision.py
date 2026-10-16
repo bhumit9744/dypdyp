@@ -8,10 +8,17 @@ They are NEVER used to infer honesty, intelligence, cheating, or interview suita
 Continuous frames are processed locally/server-side with OpenCV and NEVER sent to Claude.
 """
 
+import os
 import base64
 import logging
-import cv2
-import numpy as np
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    cv2 = None
+    np = None
+    CV2_AVAILABLE = False
 from typing import Dict, Any, Optional, Tuple
 from pydantic import BaseModel, Field
 
@@ -89,7 +96,7 @@ class VisionAnalyzer:
                 confidence=0.0
             )
 
-    def analyze_image(self, img: np.ndarray) -> VisionAnalysisResult:
+    def analyze_image(self, img: Any) -> VisionAnalysisResult:
         """
         Runs genuine OpenCV computer vision analysis on a frame.
         """
