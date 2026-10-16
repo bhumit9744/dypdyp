@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Award,
   UserCheck,
-  Plus
+  Plus,
+  Video
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -415,15 +416,16 @@ export const DashboardPage: React.FC = () => {
                   </div>
                 </div>
 
-                <a
-                  href={activeInterviews[0].meetUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"
+                <button
+                  onClick={() => {
+                    setCurrentSection('career');
+                    setCurrentSubSection('interview-studio');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs hover:shadow-brand-500/20"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Join Meeting Room
-                </a>
+                  <Video className="w-3.5 h-3.5" />
+                  Enter In-Platform Interview Studio
+                </button>
               </div>
             ) : (
               <div className="py-4 text-center space-y-1.5">

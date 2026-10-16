@@ -4,6 +4,7 @@ from .core.config import settings
 from .core.database import engine, Base
 from .models import models
 from .api.endpoints import router as api_router
+from .api.interview_endpoints import router as interview_router
 
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(interview_router, prefix="/api/v1")
 
 @app.get("/")
 def root():

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
-import { Header } from './components/layout/Header';
+import { Sidebar } from './components/layout/Sidebar';
 import { SubNav } from './components/layout/SubNav';
+import { Menu } from 'lucide-react';
 
 // Dashboard
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -12,6 +13,7 @@ import { SkillsSubSection } from './pages/career/SkillsSubSection';
 import { ResumeSubSection } from './pages/career/ResumeSubSection';
 import { AssessmentsSubSection } from './pages/career/AssessmentsSubSection';
 import { CareerPrepSubSection } from './pages/career/CareerPrepSubSection';
+import { InterviewStudioSubSection } from './pages/career/InterviewStudioSubSection';
 
 // Explore Subsections (6 Modules)
 import { JobsInternshipsSubSection } from './pages/explore/JobsInternshipsSubSection';
@@ -29,6 +31,7 @@ import { InterviewsSubSection } from './pages/placements/InterviewsSubSection';
 
 export const AppContent: React.FC = () => {
   const { currentSection, currentSubSection } = useApp();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const renderContent = () => {
     switch (currentSection) {
@@ -45,6 +48,8 @@ export const AppContent: React.FC = () => {
             return <AssessmentsSubSection />;
           case 'career-prep':
             return <CareerPrepSubSection />;
+          case 'interview-studio':
+            return <InterviewStudioSubSection />;
           case 'profile':
           default:
             return <ProfileSubSection />;
@@ -88,25 +93,58 @@ export const AppContent: React.FC = () => {
     }
   };
 
+  const getSectionTitle = () => {
+    switch (currentSection) {
+      case 'dashboard': return 'Dashboard';
+      case 'career': return 'My Career';
+      case 'explore': return 'Explore';
+      case 'placements': return 'Placements';
+      default: return 'Placement Hub';
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-brand-500/20 selection:text-brand-900">
-      {/* Top Navbar */}
-      <Header />
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-brand-500/20 selection:text-brand-900">
+      {/* Side Navigation Section (Permanent on desktop, drawer on mobile) */}
+      <Sidebar mobileOpen={mobileSidebarOpen} setMobileOpen={setMobileSidebarOpen} />
 
-      {/* Dynamic Contextual Sub-Navigation */}
-      <SubNav />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+        {/* Mobile Header Bar (Only visible on small viewports to open side navigation) */}
+        <div className="md:hidden flex items-center justify-between h-14 px-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Open side navigation"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+              Placement Hub
+            </span>
+          </div>
 
-      {/* Main Viewport */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-        {renderContent()}
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300 border border-brand-200/60">
+            {getSectionTitle()}
+          </span>
+        </div>
 
-        {/* Footer */}
-        <footer className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 dark:text-slate-500">
-          <p>
-            Placement Hub • PS6 Campus Recruitment & Evidence Intelligence Architecture • D.Y. Patil College of Engineering, Akurdi
-          </p>
-        </footer>
-      </main>
+        {/* Dynamic Contextual Sub-Navigation */}
+        <SubNav />
+
+        {/* Main Viewport */}
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+          {renderContent()}
+
+          {/* Footer */}
+          <footer className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400 dark:text-slate-500">
+            <p>
+              Placement Hub • PS6 Campus Recruitment & Evidence Intelligence Architecture • D.Y. Patil College of Engineering, Akurdi
+            </p>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 };

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DATABASE_URL: str = "sqlite:///./placement_hub.db"
     ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_BASE_URL: str = ""
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:3000",

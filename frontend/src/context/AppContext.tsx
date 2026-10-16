@@ -96,6 +96,10 @@ interface AppContextType {
   interviewExperiences: InterviewExperience[];
   toggleInterviewChecklist: (interviewId: string, itemIndex: number) => void;
 
+  // In-Platform AI Interview Studio Target (native on website, no Zoom)
+  activeInterviewTarget: { role: string; company?: string; type?: string; skills?: string[] } | null;
+  setActiveInterviewTarget: (target: { role: string; company?: string; type?: string; skills?: string[] } | null) => void;
+
   // Placements Actions
   updateApplicationNotes: (appId: string, notes: string) => void;
   toggleApplicationTask: (appId: string, taskId: string) => void;
@@ -207,6 +211,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
     return mockInterviewExperiences;
   });
+
+  const [activeInterviewTarget, setActiveInterviewTarget] = useState<{
+    role: string;
+    company?: string;
+    type?: string;
+    skills?: string[];
+  } | null>(null);
 
   // Default to light theme as requested
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -730,6 +741,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addInterviewExperience,
         reportInterviewExperience,
         updateOfferDecision,
+        activeInterviewTarget,
+        setActiveInterviewTarget,
         integrationsStatus,
         refreshIntegrations,
         isLiveMode: true,
