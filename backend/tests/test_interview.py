@@ -275,7 +275,7 @@ def test_opencv_vision_frame_telemetry():
     assert "Never factored into interview scores" in telemetry["disclaimer"]
 
 def test_claude_authentication_error_handling():
-    """Verify that Claude API authentication failures return 401 and never fabricate questions."""
+    """Verify that AI API authentication failures return 401 and never fabricate questions."""
     create_res = client.post(
         "/api/v1/interview/sessions",
         json={
@@ -294,8 +294,111 @@ def test_claude_authentication_error_handling():
     )
     session_id = create_res.json()["session_id"]
 
-    # When Claude returns 401 Invalid x-api-key, next-question must return 401
+    from app.services.claude_interview import ClaudeAuthenticationError
+    with patch("app.api.interview_endpoints.claude_service.generate_question", side_effect=ClaudeAuthenticationError("Google Gemini authentication failed: invalid API key.")):
+        q_res = client.post(f"/api/v1/interview/sessions/{session_id}/next-question")
+        assert q_res.status_code == 401
+        assert "authentication" in q_res.json()["detail"].lower() or "401" in q_res.json()["detail"]
+
+def test_gemini_real_question_generation():
+    """Verify real question generation via Gemini API returns 200 and valid schema."""
+    create_res = client.post(
+        "/api/v1/interview/sessions",
+        json={
+            "role_target": "Full Stack Engineer",
+            "interview_type": "Technical",
+            "difficulty": "Easy",
+            "question_limit": 2,
+            "duration_minutes": 10,
+            "required_skills": ["TypeScript", "FastAPI"],
+            "consent": {
+                "camera_enabled": True,
+                "mic_enabled": True,
+                "storage_policy_accepted": True
+            }
+        }
+    )
+    session_id = create_res.json()["session_id"]
     q_res = client.post(f"/api/v1/interview/sessions/{session_id}/next-question")
-    # With the live key currently set in .env which Anthropic rejected with 401:
-    assert q_res.status_code == 401
-    assert "Anthropic" in q_res.json()["detail"] or "unauthenticated" in q_res.json()["detail"].lower()
+    assert q_res.status_code == 200
+    data = q_res.json()
+    assert "turn" in data
+    assert len(data["turn"]["question_text"]) > 10
+
+def test_gemini_streaming_question():
+    """Verify streaming question endpoint returns text/event-stream chunks."""
+    create_res = client.post(
+        "/api/v1/interview/sessions",
+        json={
+            "role_target": "Data Engineer",
+            "interview_type": "Technical",
+            "difficulty": "Easy",
+            "question_limit": 2,
+            "duration_minutes": 10,
+            "required_skills": ["Python", "SQL"],
+            "consent": {
+                "camera_enabled": True,
+                "mic_enabled": True,
+                "storage_policy_accepted": True
+            }
+        }
+    )
+    session_id = create_res.json()["session_id"]
+    s_res = client.post(f"/api/v1/interview/sessions/{session_id}/stream-question")
+    assert s_res.status_code == 200
+    assert "text/event-stream" in s_res.headers["content-type"]
+    assert len(s_res.content) > 0
+
+def test_provider_diagnostic_endpoint():
+    """Verify safe diagnostic endpoint reports hostname, protocol, path, model, and presence without leaking key."""
+    response = client.get("/api/v1/interview/provider-diagnostic")
+    assert response.status_code == 200
+    data = response.json()
+    assert "hostname" in data
+    assert "generativelanguage.googleapis.com" in data["hostname"]
+    assert "api_protocol" in data
+    assert "Google Gen AI" in data["api_protocol"]
+    assert "endpoint_path" in data
+    assert "model_id" in data
+    assert "credential_present" in data
+    assert data["credential_present"] is True
+    assert "diagnostic_message" in data
+    # Ensure no secret strings or keys are leaked
+    for v in data.values():
+        if isinstance(v, str):
+            assert "AIza" not in v
+            assert "sk-kodex" not in v
+
+def test_provider_diagnostic_error_distinction():
+    """Verify distinct error states: authentication_error, quota_error, and unsupported_model."""
+    from app.services.claude_interview import GeminiInterviewService
+    from google.genai.errors import ClientError
+
+    svc = GeminiInterviewService(api_key="mock_test_key_for_verification_only")
+
+    # 1. Quota error (429)
+    with patch.object(svc, "_get_client") as mock_get_client:
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = ClientError(429, {"error": {"code": 429, "message": "Resource has been exhausted (e.g. check quota)."}})
+        mock_get_client.return_value = mock_client
+        diag = svc.test_provider_connection()
+        assert diag.status == "quota_error"
+        assert diag.http_status == 429
+
+    # 2. Unsupported model error (404)
+    with patch.object(svc, "_get_client") as mock_get_client:
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = ClientError(404, {"error": {"code": 404, "message": "Model models/gemini-old is not found."}})
+        mock_get_client.return_value = mock_client
+        diag = svc.test_provider_connection()
+        assert diag.status == "unsupported_model"
+        assert diag.http_status == 404
+
+    # 3. Authentication error (403)
+    with patch.object(svc, "_get_client") as mock_get_client:
+        mock_client = MagicMock()
+        mock_client.models.generate_content.side_effect = ClientError(403, {"error": {"code": 403, "message": "API key not valid. Please pass a valid API key."}})
+        mock_get_client.return_value = mock_client
+        diag = svc.test_provider_connection()
+        assert diag.status == "authentication_error"
+        assert diag.http_status == 401

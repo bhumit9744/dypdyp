@@ -25,7 +25,7 @@ def test_integrations_status():
     assert "claude_api" in data
     # Safe check never leaks raw key
     assert "sk-" not in str(data)
-    assert data["claude_api"]["provider"] == "Anthropic Claude API"
+    assert data["claude_api"]["provider"] in ("Anthropic Claude API", "Google Gemini API")
 
 def test_real_applications_crud():
     # 1. Create a real application

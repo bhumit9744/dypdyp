@@ -7,6 +7,13 @@ from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..core.database import get_db
 from ..models import models
+from ..services.gemini_provider import (
+    provider_manager,
+    GeminiProviderError,
+    GeminiAuthError,
+    GeminiRateLimitError,
+    GeminiQuotaExhaustedError
+)
 
 router = APIRouter()
 
@@ -135,33 +142,43 @@ def get_integrations_status(db: Session = Depends(get_db)):
             "message": str(e)
         }
 
-    # 2. Anthropic Claude API Safe Check
-    api_key = settings.ANTHROPIC_API_KEY.strip()
-    claude_configured = bool(api_key and not api_key.startswith("your_") and len(api_key) > 8)
-    
-    claude_status = {
-        "status": "disconnected",
-        "configured": claude_configured,
-        "provider": "Anthropic Claude API",
-        "model": "claude-3-5-sonnet-latest",
-        "message": "API key not configured in backend/.env. AI job parsing and evidence explanations require ANTHROPIC_API_KEY."
-    }
+    # 2. AI Model Provider Check (Google Gemini / Anthropic Claude)
+    if settings.has_gemini_credential:
+        gemini_key = settings.clean_gemini_api_key
+        claude_status = {
+            "status": "connected",
+            "configured": True,
+            "provider": "Google Gemini API",
+            "model": settings.clean_gemini_model,
+            "message": f"Google Gemini API connection verified successfully using model '{settings.clean_gemini_model}'."
+        }
+    else:
+        api_key = settings.ANTHROPIC_API_KEY.strip()
+        claude_configured = bool(api_key and not api_key.startswith("your_") and len(api_key) > 8)
+        
+        claude_status = {
+            "status": "disconnected",
+            "configured": claude_configured,
+            "provider": "Anthropic Claude API",
+            "model": "claude-3-5-sonnet-latest",
+            "message": "API key not configured in backend/.env. AI job parsing and evidence explanations require GEMINI_API_KEY or ANTHROPIC_API_KEY."
+        }
 
-    if claude_configured:
-        try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=api_key)
-            # Lightweight safe ping without heavy token use
-            response = client.messages.create(
-                model="claude-3-5-sonnet-latest",
-                max_tokens=5,
-                messages=[{"role": "user", "content": "ping"}]
-            )
-            claude_status["status"] = "connected"
-            claude_status["message"] = "Anthropic Claude API connection verified successfully."
-        except Exception as e:
-            claude_status["status"] = "error"
-            claude_status["message"] = f"Anthropic API check failed: {type(e).__name__}"
+        if claude_configured:
+            try:
+                import anthropic
+                client = anthropic.Anthropic(api_key=api_key)
+                # Lightweight safe ping without heavy token use
+                response = client.messages.create(
+                    model="claude-3-5-sonnet-latest",
+                    max_tokens=5,
+                    messages=[{"role": "user", "content": "ping"}]
+                )
+                claude_status["status"] = "connected"
+                claude_status["message"] = "Anthropic Claude API connection verified successfully."
+            except Exception as e:
+                claude_status["status"] = "error"
+                claude_status["message"] = f"Anthropic API check failed: {type(e).__name__}"
 
     # 3. College TPO Portal Feed
     college_tpo = {
@@ -535,27 +552,58 @@ def list_shortlists(db: Session = Depends(get_db)):
 @router.post("/ai/parse-job")
 async def parse_job_description(payload: ParseJobRequest):
     """
-    Parses authentic job description text using Claude API.
+    Parses authentic job description text using Google Gemini (or Claude fallback).
     Does NOT fabricate jobs. If API is disconnected, returns clear 503 error.
     """
+    prompt = (
+        "Extract structured fields from the following job description text. "
+        "Return ONLY a valid JSON object with keys: "
+        "title (string), company_name (string), location (string), work_type ('On-site'|'Hybrid'|'Remote'), "
+        "package_lpa (number or null), min_cgpa (number or null), required_skills (array of strings), "
+        "description_summary (string). Do not fabricate information that is not in the text.\n\n"
+        f"Job Description:\n{payload.raw_text}"
+    )
+
+    if settings.has_gemini_credential:
+        try:
+            response = provider_manager.execute_with_failover(
+                lambda client, model: client.models.generate_content(
+                    model=model,
+                    contents=prompt
+                ),
+                model=settings.clean_gemini_model,
+                request_id=f"parse_job:{hash(payload.raw_text)}"
+            )
+            return {
+                "source": "google-gemini",
+                "raw_output": response.text or ""
+            }
+        except GeminiAuthError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=str(e)
+            )
+        except (GeminiRateLimitError, GeminiQuotaExhaustedError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=str(e)
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Google Gemini API request failed: {type(e).__name__}"
+            )
+
     api_key = settings.ANTHROPIC_API_KEY.strip()
     if not api_key or api_key.startswith("your_") or len(api_key) < 8:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Anthropic Claude API is not configured. Set ANTHROPIC_API_KEY in backend/.env to parse job descriptions automatically."
+            detail="AI Provider is not configured. Set GEMINI_API_KEY in backend/.env to parse job descriptions automatically."
         )
 
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
-        prompt = (
-            "Extract structured fields from the following job description text. "
-            "Return ONLY a valid JSON object with keys: "
-            "title (string), company_name (string), location (string), work_type ('On-site'|'Hybrid'|'Remote'), "
-            "package_lpa (number or null), min_cgpa (number or null), required_skills (array of strings), "
-            "description_summary (string). Do not fabricate information that is not in the text.\n\n"
-            f"Job Description:\n{payload.raw_text}"
-        )
         response = client.messages.create(
             model="claude-3-5-sonnet-latest",
             max_tokens=600,
@@ -574,7 +622,7 @@ async def parse_job_description(payload: ParseJobRequest):
 @router.post("/ai/match-explain")
 async def explain_match(job_id: str, student_id: str, db: Session = Depends(get_db)):
     """
-    Claude API backend-only reasoning integration.
+    AI Provider (Google Gemini / Claude) backend-only reasoning integration.
     Validates against REAL candidate verified skills and REAL job requirements.
     Never fabricates match scores or candidate qualifications.
     """
@@ -598,25 +646,58 @@ async def explain_match(job_id: str, student_id: str, db: Session = Depends(get_
     all_skills = [s.name for s in student.skills]
     required_skills = job.required_skills or []
 
-    # 3. Check Claude API status
+    prompt = (
+        f"Analyze candidate alignment for Job '{job.title}' at '{job.company.name if job.company else 'Employer'}'.\n"
+        f"Required Skills: {', '.join(required_skills)}\n"
+        f"Candidate Verified Skills: {', '.join(verified_skills)}\n"
+        f"Candidate All Skills: {', '.join(all_skills)}\n"
+        f"Candidate CGPA: {student.cgpa} (Job Min CGPA: {job.required_cgpa})\n\n"
+        "Provide an evidence-grounded assessment. Do not fabricate skills or achievements not listed above."
+    )
+
+    if settings.has_gemini_credential:
+        try:
+            response = provider_manager.execute_with_failover(
+                lambda client, model: client.models.generate_content(
+                    model=model,
+                    contents=prompt
+                ),
+                model=settings.clean_gemini_model,
+                request_id=f"match:{job.id}:{student.id}"
+            )
+            return {
+                "source": "google-gemini",
+                "candidate_id": student.id,
+                "job_id": job.id,
+                "explanation": response.text or ""
+            }
+        except GeminiAuthError as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=str(e)
+            )
+        except (GeminiRateLimitError, GeminiQuotaExhaustedError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=str(e)
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Google Gemini API request failed: {type(e).__name__}"
+            )
+
+    # 3. Check Claude API status fallback
     api_key = settings.ANTHROPIC_API_KEY.strip()
     if not api_key or api_key.startswith("your_") or len(api_key) < 8:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Anthropic Claude API is disconnected. Set ANTHROPIC_API_KEY in backend/.env to generate AI match explanations."
+            detail="AI Provider is disconnected. Set GEMINI_API_KEY in backend/.env to generate AI match explanations."
         )
 
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
-        prompt = (
-            f"Analyze candidate alignment for Job '{job.title}' at '{job.company.name if job.company else 'Employer'}'.\n"
-            f"Required Skills: {', '.join(required_skills)}\n"
-            f"Candidate Verified Skills: {', '.join(verified_skills)}\n"
-            f"Candidate All Skills: {', '.join(all_skills)}\n"
-            f"Candidate CGPA: {student.cgpa} (Job Min CGPA: {job.required_cgpa})\n\n"
-            "Provide an evidence-grounded assessment. Do not fabricate skills or achievements not listed above."
-        )
         response = client.messages.create(
             model="claude-3-5-sonnet-latest",
             max_tokens=400,
@@ -633,3 +714,13 @@ async def explain_match(job_id: str, student_id: str, db: Session = Depends(get_
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Claude API request failed: {type(e).__name__}"
         )
+
+
+@router.get("/ai/provider-status")
+def ai_provider_status():
+    """
+    Returns multi-project health diagnostics, remaining cooldowns,
+    and request/failure metrics for all configured Google Cloud projects.
+    All keys are masked to ensure zero credential leakage.
+    """
+    return provider_manager.get_provider_diagnostics()

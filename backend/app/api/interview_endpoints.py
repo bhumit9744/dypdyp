@@ -4,10 +4,12 @@ Full session lifecycle: consent, question generation, answer evaluation,
 vision telemetry, and final feedback report with authenticated session ownership.
 """
 
+import json
 import datetime
 import uuid
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -22,8 +24,11 @@ from ..services.claude_interview import (
     ClaudeParsingError,
     QuestionSchema,
     EvaluationSchema,
-    SummarySchema
+    SummarySchema,
+    ProviderDiagnosticSchema,
+    GeminiStreamInterruptedError
 )
+from ..services.gemini_provider import provider_manager
 from ..services.speech import get_speech_architecture_status
 from ..services.vision import vision_analyzer, VisionAnalysisResult
 
@@ -100,6 +105,30 @@ def speech_status():
     active adapters, and exact missing cloud credentials if unconfigured.
     """
     return get_speech_architecture_status()
+
+
+@router.get("/provider-diagnostic", response_model=ProviderDiagnosticSchema)
+def provider_diagnostic(provider: Optional[str] = None):
+    """
+    Executes a safe diagnostic test of the configured provider.
+    Accepts ?provider=openjarvis or defaults to Google Gemini.
+    Reports hostname, api_protocol, endpoint_path, model_id, credential presence, and test request outcome.
+    Never exposes secret keys or prefixes.
+    """
+    if provider == "openjarvis":
+        from ..services.openjarvis_interview import openjarvis_service
+        return openjarvis_service.test_provider_connection()
+    return claude_service.test_provider_connection()
+
+
+@router.get("/provider-status")
+def provider_status():
+    """
+    Returns multi-project health diagnostics, remaining cooldowns,
+    and request/failure metrics for all configured Google Cloud projects.
+    All keys are masked to ensure zero credential leakage.
+    """
+    return provider_manager.get_provider_diagnostics()
 
 
 # ---------------------------------------------------------------------------
@@ -386,6 +415,60 @@ def generate_next_question(
             "expected_points": q_data.expected_points
         }
     }
+
+@router.post("/sessions/{session_id}/stream-question")
+def stream_interview_question(
+    session_id: str,
+    db: Session = Depends(get_db),
+    current_student: models.Student = Depends(get_current_student)
+):
+    """
+    Streams generated question tokens directly from Google Gemini in real time.
+    Provides streaming text responses as supported by the official SDK.
+    Note: Real-time speech requires a separate audio synthesis pipeline.
+    """
+    session_record = db.query(models.InterviewSession).filter(models.InterviewSession.id == session_id).first()
+    if not session_record:
+        raise HTTPException(status_code=404, detail="Interview session not found.")
+    if session_record.student_id != current_student.id:
+        raise HTTPException(status_code=403, detail="Forbidden: Session ownership required.")
+    if session_record.status != "InProgress":
+        raise HTTPException(status_code=400, detail="Cannot generate questions for completed or cancelled session.")
+
+    completed_turns_count = len(session_record.turns)
+    if completed_turns_count >= session_record.question_limit:
+        raise HTTPException(status_code=400, detail="Session question limit reached.")
+
+    prior_turns = [
+        {
+            "turn_number": t.turn_number,
+            "question_text": t.question_text,
+            "student_answer_transcript": t.student_answer_transcript
+        }
+        for t in session_record.turns
+    ]
+    verified_skills = [s.name for s in current_student.skills if s.verified]
+    turn_num = completed_turns_count + 1
+
+    def event_stream():
+        try:
+            for chunk in claude_service.generate_question_stream(
+                role_target=session_record.role_target,
+                interview_type=session_record.interview_type,
+                difficulty=session_record.difficulty,
+                required_skills=session_record.required_skills or [],
+                candidate_verified_skills=verified_skills,
+                candidate_degree=current_student.degree,
+                turn_number=turn_num,
+                prior_turns=prior_turns
+            ):
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        except GeminiStreamInterruptedError as e:
+            yield f"data: {json.dumps({'error': str(e), 'status': 'interrupted', 'recoverable': False})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e), 'status': 'error', 'recoverable': True})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 @router.post("/sessions/{session_id}/submit-answer")
 def submit_answer(

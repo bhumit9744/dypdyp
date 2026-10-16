@@ -38,6 +38,7 @@ export const ApplicationsSubSection: React.FC = () => {
     updateApplicationNotes,
     toggleApplicationTask,
     updateApplicationStatus,
+    setCurrentSection,
     setCurrentSubSection
   } = useApp();
 
@@ -48,6 +49,42 @@ export const ApplicationsSubSection: React.FC = () => {
   const [editingNotesAppId, setEditingNotesAppId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [userResumes, setUserResumes] = useState<any[]>([]);
+  const [attachWarning, setAttachWarning] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch('http://127.0.0.1:8000/api/v1/resumes')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setUserResumes(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleAttachResume = async (appId: string, resumeId: string) => {
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/v1/resumes/applications/${appId}/attach-resume?resume_id=${resumeId}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAttachWarning(data.warning || null);
+        const selected = userResumes.find((r) => r.id === resumeId);
+        if (selected && activeAppDetail) {
+          setActiveAppDetail({
+            ...activeAppDetail,
+            resumeVersion: {
+              fileName: `${selected.title} (${selected.target_role})`,
+              uploadedAt: data.snapshot_date || 'Just now',
+              atsScore: selected.ats_score
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to attach resume:', err);
+    }
+  };
 
   // New Application Form State
   const [newCompany, setNewCompany] = useState<string>('');
@@ -561,32 +598,83 @@ export const ApplicationsSubSection: React.FC = () => {
             </div>
 
             {/* Resume Version and Documents */}
-            {activeAppDetail.resumeVersion && (
-              <div className="space-y-2 text-xs">
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center">
                 <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]">
-                  Document Artifacts & Credentials
+                  Submitted Resume Snapshot
                 </h4>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      Targeted ATS Resume: {activeAppDetail.resumeVersion.fileName}
-                    </span>
-                    <span className="text-[11px] font-bold text-emerald-600">
+                <button
+                  onClick={() => {
+                    setCurrentSection('career');
+                    setCurrentSubSection('resume');
+                  }}
+                  className="text-[11px] font-semibold text-brand-600 hover:underline flex items-center gap-1"
+                >
+                  <FileText className="w-3 h-3" />
+                  <span>Open in Resume Studio</span>
+                </button>
+              </div>
+
+              {/* Attach / Change Tailored Resume */}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                <div>
+                  <label className="text-[10px] font-medium text-slate-500 block mb-1">
+                    Attach Tailored Resume Version
+                  </label>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) handleAttachResume(activeAppDetail.id, e.target.value);
+                    }}
+                    defaultValue=""
+                    className="w-full p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                  >
+                    <option value="" disabled>-- Select tailored version to attach --</option>
+                    {userResumes.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.title} ({r.target_role}) — ATS {r.ats_score}%
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {attachWarning && (
+                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 text-[11px] flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{attachWarning}</span>
+                  </div>
+                )}
+
+                {activeAppDetail.resumeVersion ? (
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                    <div>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                        {activeAppDetail.resumeVersion.fileName}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Snapshot recorded: {activeAppDetail.resumeVersion.uploadedAt}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-600">
                       ATS {activeAppDetail.resumeVersion.atsScore}%
                     </span>
                   </div>
-                  {activeAppDetail.supportingDocuments && activeAppDetail.supportingDocuments.map((doc, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-[11px] text-slate-500">
-                      <span>• {doc.name}</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                        Verified
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                ) : (
+                  <div className="text-[11px] text-slate-400 italic">
+                    No tailored resume snapshot attached yet. Select a version above to record snapshot.
+                  </div>
+                )}
+
+                {activeAppDetail.supportingDocuments && activeAppDetail.supportingDocuments.map((doc, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <span>• {doc.name}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      Verified
+                    </span>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
 
             {/* Confirmed Update History */}
             {activeAppDetail.updateHistory && activeAppDetail.updateHistory.length > 0 && (
