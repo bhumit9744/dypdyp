@@ -208,10 +208,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return mockInterviewExperiences;
   });
 
-  // Default to light theme as requested, with persistence
+  // Default to light theme as requested
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
-    return saved === 'dark';
+    // Default to false (Light Theme)
+    return saved === 'dark' ? false : false;
   });
 
   useEffect(() => {

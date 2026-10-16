@@ -137,7 +137,7 @@ def get_integrations_status(db: Session = Depends(get_db)):
 
     # 2. Anthropic Claude API Safe Check
     api_key = settings.ANTHROPIC_API_KEY.strip()
-    claude_configured = bool(api_key and not api_key.startswith("your_") and not api_key.startswith("sk-kodex"))
+    claude_configured = bool(api_key and not api_key.startswith("your_") and len(api_key) > 8)
     
     claude_status = {
         "status": "disconnected",
