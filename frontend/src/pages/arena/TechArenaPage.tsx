@@ -1,24 +1,33 @@
 import React, { useState } from 'react';
 import { QuizConfig, QuizResultData } from './types/quiz';
+import { BugHunterConfig, BugHunterResultData } from './types/bugHunter';
 import { TechArenaDashboard } from './TechArenaDashboard';
 import { CodeQuizArena } from './components/CodeQuizArena';
+import { BugHunterArena } from './components/bughunter/BugHunterArena';
 import { QuizResults } from './components/QuizResults';
 import { QuizReview } from './components/QuizReview';
 import { STARTER_QUIZ_QUESTIONS } from './data/quizQuestions';
 
 export const TechArenaPage: React.FC = () => {
-  const [activeView, setActiveView] = useState<'dashboard' | 'game' | 'past-results' | 'past-review'>('dashboard');
-  const [gameConfig, setGameConfig] = useState<QuizConfig | undefined>(undefined);
+  const [activeView, setActiveView] = useState<'dashboard' | 'code-quiz' | 'bug-hunter' | 'past-results' | 'past-review'>('dashboard');
+  const [quizConfig, setQuizConfig] = useState<QuizConfig | undefined>(undefined);
+  const [bugConfig, setBugConfig] = useState<BugHunterConfig | undefined>(undefined);
   const [inspectResult, setInspectResult] = useState<QuizResultData | null>(null);
 
-  const handleLaunchGame = (_gameId: 'code-quiz' | 'daily' | 'bug-hunter', config?: QuizConfig) => {
-    setGameConfig(config);
-    setActiveView('game');
+  const handleLaunchGame = (gameId: 'code-quiz' | 'daily' | 'bug-hunter', config?: any) => {
+    if (gameId === 'bug-hunter') {
+      setBugConfig(config);
+      setActiveView('bug-hunter');
+    } else {
+      setQuizConfig(config);
+      setActiveView('code-quiz');
+    }
   };
 
   const handleBackToDashboard = () => {
     setActiveView('dashboard');
-    setGameConfig(undefined);
+    setQuizConfig(undefined);
+    setBugConfig(undefined);
     setInspectResult(null);
   };
 
@@ -36,10 +45,17 @@ export const TechArenaPage: React.FC = () => {
         />
       )}
 
-      {activeView === 'game' && (
+      {activeView === 'code-quiz' && (
         <CodeQuizArena
           onBackToArena={handleBackToDashboard}
-          initialConfig={gameConfig}
+          initialConfig={quizConfig}
+        />
+      )}
+
+      {activeView === 'bug-hunter' && (
+        <BugHunterArena
+          onBackToArena={handleBackToDashboard}
+          initialConfig={bugConfig}
         />
       )}
 
@@ -48,12 +64,12 @@ export const TechArenaPage: React.FC = () => {
           result={inspectResult}
           onReviewAnswers={() => setActiveView('past-review')}
           onRetryQuiz={() => {
-            setGameConfig(inspectResult.config);
-            setActiveView('game');
+            setQuizConfig(inspectResult.config);
+            setActiveView('code-quiz');
           }}
           onNewQuiz={() => {
-            setGameConfig(undefined);
-            setActiveView('game');
+            setQuizConfig(undefined);
+            setActiveView('code-quiz');
           }}
           onBackToArena={handleBackToDashboard}
         />
