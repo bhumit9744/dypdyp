@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
+import { Header } from './components/layout/Header';
 import { SubNav } from './components/layout/SubNav';
-import { Menu } from 'lucide-react';
 import { JarvisVoiceAssistant } from './components/jarvis/JarvisVoiceAssistant';
 
 // Dashboard
@@ -143,25 +143,8 @@ export const AppContent: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
-        {/* Mobile Header Bar (Only visible on small viewports to open side navigation) */}
-        <div className="md:hidden flex items-center justify-between h-14 px-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setMobileSidebarOpen(true)}
-              className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              aria-label="Open side navigation"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <span className="font-extrabold text-sm text-[#17172B] dark:text-white">
-              Placement Hub
-            </span>
-          </div>
-
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300 border border-brand-200/60">
-            {getSectionTitle()}
-          </span>
-        </div>
+        {/* Top Navbar Header with Student Connect & All Primary Navigation */}
+        <Header onOpenMobileSidebar={() => setMobileSidebarOpen(true)} />
 
         {/* Dynamic Contextual Sub-Navigation */}
         <SubNav />

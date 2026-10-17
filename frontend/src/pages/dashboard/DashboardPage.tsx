@@ -368,6 +368,17 @@ export const DashboardPage: React.FC = () => {
                   <span>Explore Opportunities</span>
                   <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
                 </button>
+
+                <button
+                  onClick={() => {
+                    setCurrentSection('connect');
+                    setCurrentSubSection('home');
+                  }}
+                  className="px-4 py-3 rounded-full bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:hover:bg-brand-900 dark:text-brand-300 border border-brand-200/80 dark:border-brand-800/80 font-bold text-xs sm:text-sm transition-all flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Student Connect</span>
+                </button>
               </div>
             </div>
 
@@ -601,27 +612,27 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 6. Mentorship Connect */}
+        {/* 6. Student Connect */}
         <div
           onClick={() => {
-            setCurrentSection('explore');
-            setCurrentSubSection('people-referrals');
+            setCurrentSection('connect');
+            setCurrentSubSection('home');
           }}
-          className="p-4 rounded-2xl bg-[#FFF5CF] dark:bg-[#292113] border border-[#FDE68A] dark:border-[#524119] flex flex-col justify-between cursor-pointer group min-h-[120px] hover:-translate-y-1.5 hover:shadow-md transition-all duration-200"
+          className="p-4 rounded-2xl bg-[#EDE7FF] dark:bg-[#251E3D] border border-[#DDD2FC] dark:border-[#382D5C] flex flex-col justify-between cursor-pointer group min-h-[120px] hover:-translate-y-1.5 hover:shadow-md transition-all duration-200"
         >
-          <div className="w-9 h-9 rounded-xl bg-[#FDE68A] dark:bg-[#3E311B] flex items-center justify-center text-[#D97706] dark:text-[#FCD34D] shadow-xs group-hover:scale-110 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-[#DDD2FC] dark:bg-[#34275E] flex items-center justify-center text-[#7C3AED] dark:text-[#C4B5FD] shadow-xs group-hover:scale-110 transition-transform">
             <Users className="w-4 h-4" />
           </div>
           <div className="mt-2.5">
             <span className="text-xs font-bold text-[#17172B] dark:text-white leading-snug block">
-              Mentorship<br />Connect
+              Student<br />Connect
             </span>
             <p className="text-[10px] text-[#6F7390] dark:text-slate-400 mt-0.5 line-clamp-1">
-              Alumni & referrals
+              Connect. Collaborate. Grow.
             </p>
           </div>
           <div className="flex justify-end mt-2">
-            <div className="w-6 h-6 rounded-full bg-white/80 dark:bg-white/10 text-[#D97706] dark:text-[#FCD34D] flex items-center justify-center group-hover:translate-x-1 transition-transform shadow-xs">
+            <div className="w-6 h-6 rounded-full bg-white/80 dark:bg-white/10 text-[#7C3AED] dark:text-[#C4B5FD] flex items-center justify-center group-hover:translate-x-1 transition-transform shadow-xs">
               <ArrowRight className="w-3 h-3" />
             </div>
           </div>

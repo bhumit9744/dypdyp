@@ -105,6 +105,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       ]
     },
     {
+      id: 'connect',
+      label: 'Student Connect',
+      icon: Users,
+      section: 'connect',
+      badge: 'Community',
+      defaultSub: 'home',
+      subsections: [
+        { id: 'home', label: 'Community Home', icon: Home },
+        { id: 'communities', label: 'Communities & Q&A', icon: MessageSquare },
+        { id: 'mentors', label: 'Senior Mentors', icon: GraduationCap },
+        { id: 'challenges', label: 'Challenges & Progress', icon: Trophy }
+      ]
+    },
+    {
       id: 'resume',
       label: 'ATS Resume Builder',
       icon: FileText,
@@ -132,20 +146,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       icon: Sparkles,
       section: 'opportunities',
       badge: 'Intelligence'
-    },
-    {
-      id: 'connect',
-      label: 'Student Connect',
-      icon: Users,
-      section: 'connect',
-      badge: 'Community',
-      defaultSub: 'home',
-      subsections: [
-        { id: 'home', label: 'Community Home', icon: Home },
-        { id: 'communities', label: 'Communities & Q&A', icon: MessageSquare },
-        { id: 'mentors', label: 'Senior Mentors', icon: GraduationCap },
-        { id: 'challenges', label: 'Challenges & Progress', icon: Trophy }
-      ]
     },
     {
       id: 'placements',
@@ -248,7 +248,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
         </div>
 
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto px-3 py-1 space-y-1 scrollbar-none">
+        <div className="flex-1 overflow-y-auto px-3 py-1 space-y-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 hover:scrollbar-thumb-slate-300">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const isMainActive = currentSection === item.section;
