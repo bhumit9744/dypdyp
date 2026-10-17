@@ -27,6 +27,7 @@ import {
   User,
   X,
   Layers,
+  FileText,
   Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';

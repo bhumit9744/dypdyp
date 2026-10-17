@@ -15,6 +15,7 @@ import { AssessmentsSubSection } from './pages/career/AssessmentsSubSection';
 import { InterviewStudioSubSection } from './pages/career/InterviewStudioSubSection';
 import { AICareerRoadmapPlanner } from './pages/career/AICareerRoadmapPlanner';
 import { AICareerGuidance } from './pages/career/AICareerGuidance';
+import { ResumeSubSection } from './pages/career/ResumeSubSection';
 
 // Explore Subsections (6 Modules)
 import { JobsInternshipsSubSection } from './pages/explore/JobsInternshipsSubSection';
