@@ -3,7 +3,6 @@ import { useApp } from '../../context/AppContext';
 import {
   GraduationCap,
   ShieldCheck,
-  FileText,
   Award,
   Briefcase,
   Building2,
@@ -51,7 +50,6 @@ export const SubNav: React.FC = () => {
       { id: 'career-guidance', label: 'AI Career Guidance', icon: Sparkles },
       { id: 'career-roadmap', label: 'AI Career Roadmap Planner', icon: Compass },
       { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, count: skills.length },
-      { id: 'resume', label: 'ATS Resume Builder', icon: FileText },
       { id: 'assessments', label: 'Assessments', icon: Award, count: 4 },
       { id: 'interview-studio', label: 'AI Interview Studio', icon: Bot }
     ],
