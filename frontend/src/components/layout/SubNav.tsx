@@ -5,7 +5,6 @@ import {
   ShieldCheck,
   FileText,
   Award,
-  TrendingUp,
   Briefcase,
   Building2,
   Users,
@@ -54,7 +53,6 @@ export const SubNav: React.FC = () => {
       { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, count: skills.length },
       { id: 'resume', label: 'ATS Resume Builder', icon: FileText },
       { id: 'assessments', label: 'Assessments', icon: Award, count: 4 },
-      { id: 'career-prep', label: 'Career Prep & Gaps', icon: TrendingUp },
       { id: 'interview-studio', label: 'AI Interview Studio', icon: Bot }
     ],
     explore: [

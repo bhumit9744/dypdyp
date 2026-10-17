@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   FileText,
   Award,
-  TrendingUp,
   Building2,
   Users,
   Clock,
@@ -98,7 +97,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
         { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, badge: `${skills.filter(s => s.verified).length || skills.length}` },
         { id: 'resume', label: 'ATS Resume Builder', icon: FileText, badge: '92 ATS' },
         { id: 'assessments', label: 'Assessments', icon: Award, badge: '4' },
-        { id: 'career-prep', label: 'Career Prep & Gaps', icon: TrendingUp },
         { id: 'interview-studio', label: 'AI Interview Studio', icon: Bot, badge: 'AI Live' }
       ]
     },
