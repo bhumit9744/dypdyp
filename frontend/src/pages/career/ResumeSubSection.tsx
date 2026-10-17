@@ -22,7 +22,7 @@ import {
   AlumniExample,
   BestRecommendation
 } from '../../types/resume';
-import { TopToolbar } from './resume/TopToolbar';
+import { TopToolbar, RightSidebarTab } from './resume/TopToolbar';
 import { LeftSidebar } from './resume/LeftSidebar';
 import { RightSidebar } from './resume/RightSidebar';
 import { ResumeCanvas } from './resume/ResumeCanvas';
@@ -46,8 +46,22 @@ export const ResumeSubSection: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Canvas State
-  const [zoom, setZoom] = useState<number>(90);
+  const [zoom, setZoom] = useState<number>(95);
   const [isEditing, setIsEditing] = useState<boolean>(true);
+
+  // Collapsible Studio Panels State
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(false);
+  const [rightPanelTab, setRightPanelTab] = useState<RightSidebarTab>('tailor');
+
+  const handleToggleRightPanel = (tab: RightSidebarTab) => {
+    if (isRightPanelOpen && rightPanelTab === tab) {
+      setIsRightPanelOpen(false);
+    } else {
+      setRightPanelTab(tab);
+      setIsRightPanelOpen(true);
+    }
+  };
 
   // Undo / Redo history stack
   const [history, setHistory] = useState<ResumeContent[]>([]);
@@ -558,42 +572,38 @@ export const ResumeSubSection: React.FC = () => {
         isEditing={isEditing}
         setIsEditing={setIsEditing}
         onRenameTitle={handleRenameTitle}
-        onOpenTailorModal={() => {
-          // Switch to tailor tab in right sidebar
-          const el = document.querySelector('[data-tab="tailor"]');
-          if (el) (el as HTMLElement).click();
-        }}
-        onOpenTruthModal={() => {
-          const el = document.querySelector('[data-tab="truth"]');
-          if (el) (el as HTMLElement).click();
-        }}
-        onOpenScoreModal={() => {
-          const el = document.querySelector('[data-tab="score"]');
-          if (el) (el as HTMLElement).click();
-        }}
+        isLeftPanelOpen={isLeftPanelOpen}
+        onToggleLeftPanel={() => setIsLeftPanelOpen((prev) => !prev)}
+        resumesCount={resumes.length}
+        isRightPanelOpen={isRightPanelOpen}
+        activeRightTab={rightPanelTab}
+        onToggleRightPanel={handleToggleRightPanel}
         onOpenCompareModal={() => setIsCompareOpen(true)}
         onExportPdf={handleExportPdf}
         onOpenUploadModal={() => setIsUploadOpen(true)}
       />
 
-      {/* Main Studio Body: Left Sidebar + Center Canvas + Right Sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
-        <LeftSidebar
-          resumes={resumes}
-          activeResumeId={activeResumeId}
-          onSelectResume={handleSelectResume}
-          onCreateNewVersion={handleCreateNewVersion}
-          onDuplicateResume={handleDuplicateResume}
-          onArchiveResume={handleArchiveResume}
-          onRestoreResume={handleRestoreResume}
-          sectionsOrder={activeResume.sections_order}
-          onReorderSections={handleReorderSections}
-          selectedTemplateId={activeResume.template_id}
-          onSelectTemplate={handleSelectTemplate}
-          alumniExamples={alumniExamples}
-          onUseAlumniTemplate={handleSelectTemplate}
-        />
+      {/* Main Studio Body: Collapsible Left Sidebar + Center Canvas + Collapsible Right Sidebar */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Sidebar (Versions, Sections, Templates, Alumni) */}
+        {isLeftPanelOpen && (
+          <LeftSidebar
+            resumes={resumes}
+            activeResumeId={activeResumeId}
+            onSelectResume={handleSelectResume}
+            onCreateNewVersion={handleCreateNewVersion}
+            onDuplicateResume={handleDuplicateResume}
+            onArchiveResume={handleArchiveResume}
+            onRestoreResume={handleRestoreResume}
+            sectionsOrder={activeResume.sections_order}
+            onReorderSections={handleReorderSections}
+            selectedTemplateId={activeResume.template_id}
+            onSelectTemplate={handleSelectTemplate}
+            alumniExamples={alumniExamples}
+            onUseAlumniTemplate={handleSelectTemplate}
+            onClose={() => setIsLeftPanelOpen(false)}
+          />
+        )}
 
         {/* Center Live A4 Document Canvas */}
         <ResumeCanvas
@@ -604,19 +614,24 @@ export const ResumeSubSection: React.FC = () => {
           pageCount={calculateEstimatedPages()}
         />
 
-        {/* Right Sidebar */}
-        <RightSidebar
-          styling={activeResume.styling_config}
-          onUpdateStyling={handleUpdateStyling}
-          claims={activeResume.evidence_links}
-          scoringReport={activeResume.scoring_report}
-          onRunGeminiTailor={handleRunGeminiTailor}
-          isTailoring={isTailoring}
-          tailoringReport={tailoringReport}
-          onApplyProposals={handleApplyProposals}
-          availableJobs={jobs}
-          defaultRole={activeResume.target_role}
-        />
+        {/* Right Sidebar (AI Tailor, Verification, Scorecard, Format) */}
+        {isRightPanelOpen && (
+          <RightSidebar
+            styling={activeResume.styling_config}
+            onUpdateStyling={handleUpdateStyling}
+            claims={activeResume.evidence_links}
+            scoringReport={activeResume.scoring_report}
+            onRunGeminiTailor={handleRunGeminiTailor}
+            isTailoring={isTailoring}
+            tailoringReport={tailoringReport}
+            onApplyProposals={handleApplyProposals}
+            availableJobs={jobs}
+            defaultRole={activeResume.target_role}
+            activeTab={rightPanelTab}
+            onTabChange={(tab) => setRightPanelTab(tab)}
+            onClose={() => setIsRightPanelOpen(false)}
+          />
+        )}
       </div>
 
       {/* Modals */}

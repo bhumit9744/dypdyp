@@ -19,20 +19,20 @@ export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
   pageCount
 }) => {
   return (
-    <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 p-6 flex flex-col items-center relative select-text">
+    <div className="flex-1 overflow-auto bg-slate-100/90 dark:bg-slate-950 p-6 sm:p-8 flex flex-col items-center relative select-text">
       {/* Page length guidance banner */}
-      <div className="mb-4 no-print flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="mb-6 no-print flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
         {pageCount === 1 ? (
           <>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="text-slate-600 dark:text-slate-300 font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="text-slate-600 dark:text-slate-300 font-medium text-xs">
               1-Page A4 Standard — Optimal for automated ATS & campus screening
             </span>
           </>
         ) : (
           <>
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-slate-600 dark:text-slate-300 font-medium">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="text-slate-600 dark:text-slate-300 font-medium text-xs">
               Multi-page layout detected ({pageCount} pages). Ensure critical qualifications appear on Page 1.
             </span>
           </>
@@ -41,7 +41,7 @@ export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
 
       {/* A4 Canvas Sheet Container */}
       <div
-        className="resume-zoom-wrapper transition-transform duration-150 ease-out origin-top"
+        className="resume-zoom-wrapper transition-transform duration-150 ease-out origin-top pb-16"
         style={{
           transform: `scale(${zoom / 100})`,
           width: '210mm'
@@ -49,7 +49,7 @@ export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
       >
         <div
           id="resume-print-canvas"
-          className="resume-print-container relative bg-white shadow-xl dark:shadow-2xl rounded-sm border border-slate-200/80 dark:border-slate-800 text-slate-900 overflow-hidden"
+          className="resume-print-container relative bg-white shadow-2xl dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] rounded-sm border border-slate-200/80 dark:border-slate-800 text-slate-900 overflow-hidden"
           style={{
             width: '210mm',
             minHeight: '297mm'

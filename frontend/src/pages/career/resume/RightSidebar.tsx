@@ -27,7 +27,9 @@ import {
   TailoringProposal
 } from '../../../types/resume';
 
-interface RightSidebarProps {
+export type RightTab = 'format' | 'tailor' | 'truth' | 'score';
+
+export interface RightSidebarProps {
   styling: StylingConfig;
   onUpdateStyling: (newStyling: StylingConfig) => void;
   claims: ClaimVerification[];
@@ -38,9 +40,10 @@ interface RightSidebarProps {
   onApplyProposals: (acceptedIds: string[], customEdits: Record<string, string>) => Promise<void>;
   availableJobs: { id: string; title: string; companyName: string; description?: string }[];
   defaultRole: string;
+  activeTab?: RightTab;
+  onTabChange?: (tab: RightTab) => void;
+  onClose?: () => void;
 }
-
-type RightTab = 'format' | 'tailor' | 'truth' | 'score';
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
   styling,
@@ -52,9 +55,20 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   tailoringReport,
   onApplyProposals,
   availableJobs,
-  defaultRole
+  defaultRole,
+  activeTab: controlledTab,
+  onTabChange,
+  onClose
 }) => {
-  const [activeTab, setActiveTab] = useState<RightTab>('tailor');
+  const [internalTab, setInternalTab] = useState<RightTab>('tailor');
+  const activeTab = controlledTab !== undefined ? controlledTab : internalTab;
+  const setActiveTab = (tab: RightTab) => {
+    if (onTabChange) {
+      onTabChange(tab);
+    } else {
+      setInternalTab(tab);
+    }
+  };
 
   // Tailoring form state
   const [selectedJobId, setSelectedJobId] = useState<string>('');
@@ -163,7 +177,32 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   });
 
   return (
-    <aside className="w-88 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col shrink-0 select-none no-print">
+    <aside className="w-88 xl:w-96 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col shrink-0 select-none no-print h-full shadow-lg">
+      {/* Studio Assistant Header */}
+      <div className="flex items-center justify-between px-3.5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40">
+        <div className="flex items-center gap-2">
+          {activeTab === 'tailor' && <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+          {activeTab === 'truth' && <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+          {activeTab === 'score' && <BarChart3 className="w-4 h-4 text-brand-600 dark:text-brand-400" />}
+          {activeTab === 'format' && <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+          <span className="text-xs font-bold text-slate-900 dark:text-white">
+            {activeTab === 'tailor' && 'Gemini Job Tailoring'}
+            {activeTab === 'truth' && 'Truth Verification'}
+            {activeTab === 'score' && 'ATS Score Report'}
+            {activeTab === 'format' && 'Layout & Styling'}
+          </span>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+            title="Close Assistant"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 p-1.5 gap-1 bg-slate-50 dark:bg-slate-950/40">
         <button
