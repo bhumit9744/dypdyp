@@ -1,6 +1,6 @@
 export type Role = 'student' | 'coordinator';
 
-export type NavSection = 'dashboard' | 'career' | 'explore' | 'placements' | 'arena';
+export type NavSection = 'dashboard' | 'career' | 'explore' | 'placements' | 'arena' | 'resume';
 
 export type CareerSubSection = 'profile' | 'career-guidance' | 'career-roadmap' | 'skills' | 'assessments' | 'interview-studio';
 

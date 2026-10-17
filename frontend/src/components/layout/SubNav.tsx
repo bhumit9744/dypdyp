@@ -39,7 +39,7 @@ export const SubNav: React.FC = () => {
     skills
   } = useApp();
 
-  if (currentSection === 'dashboard') return null;
+  if (currentSection === 'dashboard' || currentSection === 'resume') return null;
 
   const tabConfigs: Record<
     string,

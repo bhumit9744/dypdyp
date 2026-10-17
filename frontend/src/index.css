@@ -139,3 +139,72 @@
   }
 }
 
+/* -------------------------------------------------------------
+ * Figma-Inspired Dotted Canvas & Pastel Design Utilities
+ * ------------------------------------------------------------- */
+:root {
+  --pastel-lavender: #EDE7FF;
+  --pastel-lavender-border: #DDD2FC;
+  --pastel-violet: #8057F5;
+  --pastel-sky: #E6F2FF;
+  --pastel-sky-border: #CCE4FE;
+  --pastel-mint: #E0F8ED;
+  --pastel-mint-border: #C6F1DA;
+  --pastel-peach: #FFF0E5;
+  --pastel-peach-border: #FEDDC7;
+  --pastel-coral: #FFE8F0;
+  --pastel-coral-border: #FDCEDC;
+  --pastel-yellow: #FFF5CF;
+  --pastel-yellow-border: #FEEBA4;
+}
+
+.bg-canvas-dots {
+  background-color: #FCFCFF;
+  background-image: radial-gradient(circle, #D5DAE2 1.3px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+
+.dark .bg-canvas-dots {
+  background-color: #0E101A;
+  background-image: radial-gradient(circle, #272F42 1.3px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+
+.font-handwriting {
+  font-family: 'Caveat', cursive, sans-serif;
+}
+
+/* Figma rounded cards with delicate border and hover lift */
+.figma-card {
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 2px 12px -2px rgba(23, 23, 43, 0.03), 0 1px 3px -1px rgba(23, 23, 43, 0.02);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.figma-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(23, 23, 43, 0.06), 0 4px 12px -2px rgba(23, 23, 43, 0.03);
+}
+
+.dark .figma-card {
+  background: #141724;
+  border: 1px solid rgba(42, 51, 74, 0.8);
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .figma-card:hover {
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.5);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+.animate-float-slow {
+  animation: floatSlow 3.5s ease-in-out infinite;
+}
+

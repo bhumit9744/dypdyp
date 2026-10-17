@@ -13,7 +13,8 @@ import {
   GraduationCap,
   Menu,
   X,
-  Gamepad2
+  Gamepad2,
+  FileText
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection } from '../../types';
@@ -74,6 +75,12 @@ export const Header: React.FC = () => {
       label: 'Games',
       icon: Gamepad2,
       defaultSub: 'games'
+    },
+    {
+      id: 'resume',
+      label: 'Resume Studio',
+      icon: FileText,
+      defaultSub: ''
     }
   ];
 

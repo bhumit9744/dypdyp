@@ -32,6 +32,9 @@ import { InterviewsSubSection } from './pages/placements/InterviewsSubSection';
 // Tech Arena / Games
 import { TechArenaPage } from './pages/arena/TechArenaPage';
 
+// AI Resume Studio
+import { ResumeSubSection } from './pages/career/ResumeSubSection';
+
 export const AppContent: React.FC = () => {
   const { currentSection, currentSubSection } = useApp();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -94,6 +97,9 @@ export const AppContent: React.FC = () => {
       case 'arena':
         return <TechArenaPage />;
 
+      case 'resume':
+        return <ResumeSubSection />;
+
       default:
         return <DashboardPage />;
     }
@@ -106,12 +112,13 @@ export const AppContent: React.FC = () => {
       case 'explore': return 'Explore';
       case 'placements': return 'Placements';
       case 'arena': return 'Games';
+      case 'resume': return 'Resume Studio';
       default: return 'Placement Hub';
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-brand-500/20 selection:text-brand-900">
+    <div className="min-h-screen flex bg-canvas-dots text-[#17172B] dark:text-slate-100 font-sans selection:bg-brand-500/20 selection:text-brand-900">
       {/* Side Navigation Section (Permanent on desktop, drawer on mobile) */}
       <Sidebar mobileOpen={mobileSidebarOpen} setMobileOpen={setMobileSidebarOpen} />
 
@@ -127,7 +134,7 @@ export const AppContent: React.FC = () => {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+            <span className="font-extrabold text-sm text-[#17172B] dark:text-white">
               Placement Hub
             </span>
           </div>
@@ -141,7 +148,7 @@ export const AppContent: React.FC = () => {
         <SubNav />
 
         {/* Main Viewport */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-5 md:py-7">
           {renderContent()}
 
           {/* Footer */}
