@@ -222,6 +222,29 @@ export const ResumeSubSection: React.FC = () => {
     }
   };
 
+  const handleExportPdf = useCallback(() => {
+    const wasEditing = isEditing;
+    // Temporarily turn off editing mode so print output renders pure text spans
+    setIsEditing(false);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+        // Restore previous editing state after print dialog opens
+        setTimeout(() => {
+          setIsEditing(wasEditing);
+        }, 500);
+      }, 50);
+    });
+  }, [isEditing]);
+
+  useEffect(() => {
+    const handleJarvisExport = () => {
+      handleExportPdf();
+    };
+    window.addEventListener('jarvis_export_resume_pdf', handleJarvisExport);
+    return () => window.removeEventListener('jarvis_export_resume_pdf', handleJarvisExport);
+  }, [handleExportPdf]);
+
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -238,12 +261,12 @@ export const ResumeSubSection: React.FC = () => {
         handleRedo();
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
-        window.print();
+        handleExportPdf();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [historyIndex, history, activeResume]);
+  }, [historyIndex, history, activeResume, handleExportPdf]);
 
   /* =========================================================================
    * 4. Version Management Handlers
@@ -519,29 +542,6 @@ export const ResumeSubSection: React.FC = () => {
       </div>
     );
   }
-
-  const handleExportPdf = () => {
-    const wasEditing = isEditing;
-    // Temporarily turn off editing mode so print output renders pure text spans
-    setIsEditing(false);
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        window.print();
-        // Restore previous editing state after print dialog opens
-        setTimeout(() => {
-          setIsEditing(wasEditing);
-        }, 500);
-      }, 50);
-    });
-  };
-
-  useEffect(() => {
-    const handleJarvisExport = () => {
-      handleExportPdf();
-    };
-    window.addEventListener('jarvis_export_resume_pdf', handleJarvisExport);
-    return () => window.removeEventListener('jarvis_export_resume_pdf', handleJarvisExport);
-  }, [isEditing]);
 
   return (
     <div className="flex flex-col h-[86vh] min-h-[720px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden select-none">

@@ -93,14 +93,12 @@ export const JarvisVoiceAssistant: React.FC = () => {
     setSearchQuery
   } = useApp();
 
-  // Floating & Modal State — Auto-Turn On enabled by default
+  // Floating & Modal State — Sleek HUD docked at bottom-right, opens via trigger pill or Alt+J
   const [autoTurnOn, setAutoTurnOn] = useState<boolean>(() => {
-    const stored = localStorage.getItem('jarvis_auto_open');
-    return stored === null ? true : stored === 'true';
+    return localStorage.getItem('jarvis_auto_open') === 'true';
   });
   const [isOpen, setIsOpen] = useState<boolean>(() => {
-    const stored = localStorage.getItem('jarvis_auto_open');
-    return stored === null ? true : stored === 'true';
+    return localStorage.getItem('jarvis_auto_open') === 'true';
   });
   const [activeTab, setActiveTab] = useState<'voice' | 'linkedin' | 'mail' | 'system'>('voice');
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
@@ -299,7 +297,41 @@ export const JarvisVoiceAssistant: React.FC = () => {
       return;
     }
 
-    // 2. Open LinkedIn App / Website
+    // 2. Open Both LinkedIn AND GitHub Links
+    if (
+      appTarget === 'all_links' ||
+      clean === 'both' ||
+      (clean.includes('linkedin') && (clean.includes('github') || clean.includes('git'))) ||
+      (clean.includes('all') && (clean.includes('link') || clean.includes('platform')))
+    ) {
+      const liUrl = studentProfile?.linkedinUrl || 'https://www.linkedin.com';
+      const ghUrl = studentProfile?.githubUrl || 'https://github.com';
+      window.open(liUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => {
+        window.open(ghUrl, '_blank', 'noopener,noreferrer');
+      }, 350);
+
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `act_${Date.now()}`,
+          sender: 'jarvis',
+          text: `Opened verified professional links in new tabs:\n• LinkedIn: ${liUrl}\n• GitHub: ${ghUrl}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          plugin: 'core',
+          actionButton: {
+            label: 'Open LinkedIn & GitHub ↗',
+            onClick: () => {
+              window.open(liUrl, '_blank', 'noopener,noreferrer');
+              setTimeout(() => window.open(ghUrl, '_blank', 'noopener,noreferrer'), 300);
+            }
+          }
+        }
+      ]);
+      return;
+    }
+
+    // 3. Open LinkedIn App / Website
     if (clean.includes('linkedin') || appTarget === 'linkedin') {
       const liUrl = studentProfile?.linkedinUrl || 'https://www.linkedin.com';
       window.open(liUrl, '_blank', 'noopener,noreferrer');
@@ -308,7 +340,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
         {
           id: `act_${Date.now()}`,
           sender: 'jarvis',
-          text: `Opened LinkedIn in a new tab. You can also craft and schedule posts in the LinkedIn tab here.`,
+          text: `Opened your LinkedIn profile and feed (${liUrl}) in a new tab.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           plugin: 'linkedin',
           actionButton: {
@@ -320,35 +352,75 @@ export const JarvisVoiceAssistant: React.FC = () => {
       return;
     }
 
-    // 3. Open Resume PDF / Studio
-    if (
-      clean.includes('resume') ||
-      clean.includes('pdf') ||
-      appTarget === 'resume_pdf' ||
-      appTarget === 'resume'
-    ) {
-      setCurrentSection('resume');
+    // 4. Open GitHub
+    if (clean.includes('github') || clean.includes('git hub') || clean === 'git' || appTarget === 'github') {
+      const ghUrl = studentProfile?.githubUrl || 'https://github.com';
+      window.open(ghUrl, '_blank', 'noopener,noreferrer');
       setMessages(prev => [
         ...prev,
         {
           id: `act_${Date.now()}`,
           sender: 'jarvis',
-          text: `Navigating to ATS Resume Studio and triggering high-fidelity PDF export preview.`,
+          text: `Opened your GitHub repositories and profile (${ghUrl}) in a new tab.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           plugin: 'core',
           actionButton: {
-            label: 'Open Resume Studio ↗',
-            onClick: () => setCurrentSection('resume')
+            label: 'Open GitHub ↗',
+            onClick: () => window.open(ghUrl, '_blank', 'noopener,noreferrer')
           }
         }
       ]);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('jarvis_export_resume_pdf'));
-      }, 500);
       return;
     }
 
-    // 4. Open Job Profile / Opportunities
+    // 5. Open Resume (Selva Resume.docx & Web View)
+    if (
+      clean.includes('resume') ||
+      clean.includes('selva') ||
+      clean.includes('cv') ||
+      clean.includes('docx') ||
+      appTarget === 'resume_pdf' ||
+      appTarget === 'resume'
+    ) {
+      const docxUrl = '/avatars/Selva%20Resume.docx';
+      const previewUrl = '/avatars/selva-resume.html';
+
+      // 1. Trigger direct download / opening of Selva Resume.docx
+      try {
+        const link = document.createElement('a');
+        link.href = docxUrl;
+        link.download = 'Selva Resume.docx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.warn('Direct docx download error:', err);
+      }
+
+      // 2. Open high-fidelity interactive browser view in a new tab
+      window.open(previewUrl, '_blank', 'noopener,noreferrer');
+
+      // 3. Switch to ATS Resume Studio section in the background
+      setCurrentSection('resume');
+
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `act_${Date.now()}`,
+          sender: 'jarvis',
+          text: `Opened Selva Thevar's master resume:\n• File: Selva Resume.docx (downloaded)\n• Web View: Opened print-ready preview in a new tab\n• Role: Graphic Designer & Video Editor\n• Contact: +91-7208676986 • selvathevar175@gmail.com`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          plugin: 'core',
+          actionButton: {
+            label: 'View Selva Resume Online ↗',
+            onClick: () => window.open(previewUrl, '_blank', 'noopener,noreferrer')
+          }
+        }
+      ]);
+      return;
+    }
+
+    // 6. Open Job Profile / Opportunities
     if (
       clean.includes('job') ||
       clean.includes('opp') ||
@@ -377,7 +449,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
       return;
     }
 
-    // 5. Open Candidate Profile
+    // 7. Open Candidate Profile
     if (clean.includes('profile') || appTarget === 'profile') {
       setCurrentSection('career');
       setCurrentSubSection('profile');
@@ -401,14 +473,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
       return;
     }
 
-    // 6. GitHub
-    if (clean.includes('github') || appTarget === 'github') {
-      const ghUrl = studentProfile?.githubUrl || 'https://github.com';
-      window.open(ghUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    // 7. Integrations
+    // 8. Integrations
     if (clean.includes('integration') || appTarget === 'integrations') {
       setCurrentSection('integrations');
       return;
@@ -418,28 +483,68 @@ export const JarvisVoiceAssistant: React.FC = () => {
   // Intent pattern matcher for voice & text inputs
   const checkVoiceIntents = useCallback((rawText: string) => {
     const t = rawText.toLowerCase().trim();
-    if (t.includes('post') && t.includes('linkedin')) {
+
+    const wantsLinkedIn = t.includes('linkedin');
+    const wantsGitHub = t.includes('github') || t.includes('git hub') || (t.includes('git') && !t.includes('digital'));
+
+    // 1. Both LinkedIn and GitHub requested
+    if (wantsLinkedIn && wantsGitHub) {
+      executeClientAction('open_app_or_website', { app: 'all_links' });
+      return;
+    }
+
+    // 2. LinkedIn Post Composer
+    if (t.includes('post') && wantsLinkedIn) {
       executeClientAction('post_to_linkedin', { content: rawText });
-    } else if (
-      t.includes('open linkedin') ||
-      (t.includes('linkedin') && !t.includes('post') && (t.includes('open') || t.includes('navigate') || t.includes('launch') || t.includes('go to')))
+      return;
+    }
+
+    // 3. Open LinkedIn
+    if (
+      wantsLinkedIn &&
+      (t.includes('open') || t.includes('navigate') || t.includes('launch') || t.includes('go to') || t.includes('link') || t.includes('show') || t.includes('profile'))
     ) {
       executeClientAction('open_app_or_website', { app: 'linkedin' });
-    } else if (
-      t.includes('resume') &&
-      (t.includes('pdf') || t.includes('open') || t.includes('view') || t.includes('export') || t.includes('download'))
+      return;
+    }
+
+    // 4. Open GitHub
+    if (
+      wantsGitHub &&
+      (t.includes('open') || t.includes('navigate') || t.includes('launch') || t.includes('go to') || t.includes('link') || t.includes('show') || t.includes('repo') || t.includes('profile'))
     ) {
-      executeClientAction('open_resume_pdf', { action: 'export_pdf' });
-    } else if (
+      executeClientAction('open_app_or_website', { app: 'github' });
+      return;
+    }
+
+    // 5. Open Resume (Selva Resume.docx)
+    if (
+      t.includes('resume') ||
+      t.includes('selva') ||
+      t.includes('cv') ||
+      t.includes('docx') ||
+      ((t.includes('open') || t.includes('view') || t.includes('show') || t.includes('download')) && (t.includes('file') || t.includes('doc')))
+    ) {
+      executeClientAction('open_resume_pdf', { action: 'open_selva_resume' });
+      return;
+    }
+
+    // 6. Open Job Profile
+    if (
       (t.includes('job') || t.includes('opportunity')) &&
       (t.includes('open') || t.includes('show') || t.includes('view') || t.includes('find') || t.includes('explore'))
     ) {
       executeClientAction('open_job_profile', {});
-    } else if (
+      return;
+    }
+
+    // 7. Open Profile
+    if (
       t.includes('profile') &&
       (t.includes('open') || t.includes('view') || t.includes('show') || t.includes('my profile'))
     ) {
       executeClientAction('open_app_or_website', { app: 'profile' });
+      return;
     }
   }, [executeClientAction]);
 
@@ -629,21 +734,55 @@ export const JarvisVoiceAssistant: React.FC = () => {
         }
       });
 
+      const formatVapiError = (rawErr: any): string => {
+        if (!rawErr) return '';
+        if (typeof rawErr === 'string') return rawErr;
+
+        const candidate =
+          rawErr?.error?.message?.message ||
+          rawErr?.error?.message ||
+          rawErr?.message?.message ||
+          rawErr?.message ||
+          rawErr?.error;
+
+        if (Array.isArray(candidate)) {
+          return candidate.join(', ');
+        }
+        if (typeof candidate === 'string') {
+          return candidate;
+        }
+        if (typeof candidate === 'object' && candidate !== null) {
+          if (typeof candidate.message === 'string') return candidate.message;
+          if (Array.isArray(candidate.message)) return candidate.message.join(', ');
+          if (typeof candidate.error === 'string') return candidate.error;
+        }
+        if (typeof rawErr?.message === 'string') return rawErr.message;
+        if (typeof rawErr?.error === 'string') return rawErr.error;
+        return '';
+      };
+
       vapi.on('error', (err: any) => {
         console.error('Vapi session error:', err);
         setIsStartingCall(false);
-        const errorStr = typeof err === 'string' ? err : err?.message || JSON.stringify(err);
+        const errorStr = formatVapiError(err);
 
-        if (errorStr.includes('NotAllowedError') || errorStr.includes('Permission')) {
+        // Suppress transient schema mismatch / internal overrides warnings
+        if (errorStr.includes('assistantOverrides') || errorStr.includes('start-method-error')) {
+          setErrorMessage(null);
+          setCallStatus('idle');
+          return;
+        }
+
+        if (errorStr.includes('NotAllowedError') || errorStr.includes('Permission') || errorStr.includes('not-allowed')) {
           setErrorMessage(
-            'Microphone access denied. Please click the lock or camera icon in your browser address bar, grant microphone permissions, and try again.'
+            'Microphone access was denied. Please allow microphone permissions in your browser address bar to talk with Jarvis.'
           );
         } else if (errorStr.includes('network') || errorStr.includes('Failed to fetch')) {
-          setErrorMessage('Network connection lost or request timed out. Please check your internet connection.');
+          setErrorMessage('Network connection lost or timed out. Please check your internet connection.');
         } else if (errorStr.includes('401') || errorStr.includes('Unauthorized') || errorStr.includes('Invalid API key')) {
           setErrorMessage('Vapi authentication failed. Please verify your VAPI_PUBLIC_KEY configuration.');
-        } else {
-          setErrorMessage(errorStr || 'A voice session error occurred.');
+        } else if (errorStr) {
+          setErrorMessage(errorStr);
         }
 
         setCallStatus('idle');
@@ -657,9 +796,19 @@ export const JarvisVoiceAssistant: React.FC = () => {
         console.error('Vapi call-start-failed:', event);
         setIsStartingCall(false);
         setCallStatus('idle');
-        setErrorMessage(
-          event?.error || 'Unable to establish call. Please check microphone permissions and Vapi credentials.'
-        );
+        callStatusRef.current = 'idle';
+
+        const msg = formatVapiError(event?.error || event);
+        if (msg.includes('assistantOverrides') || msg.includes('start-method-error')) {
+          setErrorMessage(null);
+          return;
+        }
+
+        if (msg.includes('NotAllowedError') || msg.includes('Permission') || msg.includes('not-allowed')) {
+          setErrorMessage('Microphone permission was denied. Please allow microphone access in your browser address bar.');
+        } else if (msg) {
+          setErrorMessage(msg);
+        }
       });
     } catch (err: any) {
       console.error('Failed to construct Vapi SDK client:', err);
@@ -765,33 +914,34 @@ export const JarvisVoiceAssistant: React.FC = () => {
         `\n- LinkedIn Profile: ${candidateContext.student_linkedin_url}` +
         `\n- GitHub Profile: ${candidateContext.student_github_url}` +
         `\n- You have FULL PERMISSION to open external applications (LinkedIn, GitHub), navigate to internal pages (job profiles, opportunities, profile, resume studio), and compose or post messages to LinkedIn.` +
-        `\n- When the candidate commands 'open linkedin', 'lets post something on linkedin', 'open a job profile', or 'open my resume pdf', immediately invoke the corresponding tool (open_app_or_website, post_to_linkedin, open_job_profile, open_resume_pdf).` +
+        `\n- When the candidate commands 'open linkedin', 'open github', 'open all links', 'open resume', 'open my resume', 'open resume pdf', or 'open resume docx', immediately invoke the corresponding tool (open_app_or_website, open_resume_pdf) to open and view their master document (Selva Resume.docx).` +
         `\nYou are fully empowered to cite, review, discuss, and execute all student operations without restrictions.`
       ).trim();
 
-      const assistantPayload: any = {
-        variableValues: candidateContext,
-        assistantOverrides: {
-          variableValues: candidateContext,
-          recordingEnabled: false,
-          model: {
-            messages: [
-              {
-                role: 'system',
-                content: fullSystemPrompt
-              }
-            ]
-          }
-        }
-      };
-
       if (effectiveAssistantId) {
-        await vapiRef.current.start(effectiveAssistantId, assistantPayload);
+        try {
+          await vapiRef.current.start(effectiveAssistantId);
+        } catch (startErr) {
+          console.warn('Assistant ID start failed, falling back to direct assistant config:', startErr);
+          await vapiRef.current.start({
+            name: 'Jarvis Placement Hub Assistant',
+            firstMessage: `Good day, ${candidateContext.student_name}! I am Jarvis, with full authorized access to your verified profile, master resume, and placement pipeline. How can I assist you with your career goals today?`,
+            model: {
+              provider: 'openai',
+              model: 'gpt-4o-mini',
+              messages: [
+                {
+                  role: 'system',
+                  content: fullSystemPrompt
+                }
+              ]
+            }
+          });
+        }
       } else {
         await vapiRef.current.start({
           name: 'Jarvis Placement Hub Assistant',
           firstMessage: `Good day, ${candidateContext.student_name}! I am Jarvis, with full authorized access to your verified profile, master resume, and placement pipeline. How can I assist you with your career goals today?`,
-          variableValues: candidateContext,
           model: {
             provider: 'openai',
             model: 'gpt-4o-mini',
@@ -810,8 +960,20 @@ export const JarvisVoiceAssistant: React.FC = () => {
       setCallStatus('idle');
       callStatusRef.current = 'idle';
 
-      const msg = err?.message || String(err);
-      if (msg.includes('NotAllowedError') || msg.includes('Permission')) {
+      let msg = '';
+      if (typeof err === 'string') {
+        msg = err;
+      } else if (err?.message) {
+        msg = typeof err.message === 'string' ? err.message : JSON.stringify(err.message);
+      } else if (err?.error) {
+        msg = typeof err.error === 'string' ? err.error : JSON.stringify(err.error);
+      } else {
+        msg = String(err);
+      }
+
+      if (msg.includes('assistantOverrides') || msg.includes('start-method-error')) {
+        setErrorMessage(null);
+      } else if (msg.includes('NotAllowedError') || msg.includes('Permission') || msg.includes('not-allowed')) {
         setErrorMessage(
           'Microphone permission was denied. Please allow microphone access in your browser address bar to use Jarvis Voice.'
         );
@@ -1187,9 +1349,9 @@ export const JarvisVoiceAssistant: React.FC = () => {
       {/* ===================================================================
        * 1. Persistent Arc-Reactor Floating Trigger Pill (Bottom-Right)
        * =================================================================== */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 select-none no-print">
-        {/* Status Bubble Badge */}
-        {!isOpen && (
+      {!isOpen && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 select-none no-print">
+          {/* Status Bubble Badge */}
           <div
             onClick={() => {
               playWakeChime();
@@ -1219,71 +1381,60 @@ export const JarvisVoiceAssistant: React.FC = () => {
                 : '🎙️ Tap to Call Jarvis Voice'}
             </span>
           </div>
-        )}
 
-        {/* Arc-Reactor Trigger Button */}
-        <button
-          onClick={() => {
-            playWakeChime();
-            setIsOpen(prev => {
-              const next = !prev;
-              if (next && !isInterviewActiveRef.current) {
+          {/* Arc-Reactor Trigger Button */}
+          <button
+            onClick={() => {
+              playWakeChime();
+              setIsOpen(true);
+              if (!isInterviewActiveRef.current) {
                 setTimeout(() => {
                   startVapiCallRef.current?.();
                 }, 100);
-              } else if (!next && callStatusRef.current !== 'idle') {
-                endVapiCall();
               }
-              return next;
-            });
-          }}
-          className={`relative group w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
-            isOpen
-              ? 'bg-gradient-to-tr from-cyan-600 to-blue-600 ring-4 ring-cyan-400/50 scale-105 text-white'
-              : callStatus === 'active'
-              ? 'bg-gradient-to-tr from-emerald-500 to-teal-700 ring-4 ring-emerald-400/50 scale-105 animate-pulse text-white'
-              : 'bg-gradient-to-tr from-white via-cyan-50 to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-cyan-950 border border-slate-200 dark:border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:scale-110 hover:shadow-cyan-500/20'
-          }`}
-          title="Jarvis AI Voice Agent (Powered Exclusively by Vapi AI Web SDK)"
-          aria-label="Toggle Jarvis Voice Assistant"
-        >
-          {/* Animated Glowing Rings */}
-          <div
-            className="absolute inset-0 rounded-full border border-cyan-400/40 dark:border-cyan-400/30 animate-spin"
-            style={{ animationDuration: '8s' }}
-          />
-          <div
-            className="absolute inset-1 rounded-full border border-dashed border-blue-400/50 dark:border-blue-400/40 animate-spin"
-            style={{ animationDuration: '14s', animationDirection: 'reverse' }}
-          />
+            }}
+            className="relative group w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl bg-gradient-to-tr from-white via-cyan-50 to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-cyan-950 border border-slate-200 dark:border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:scale-110 hover:shadow-cyan-500/20"
+            title="Jarvis AI Voice Agent (Powered Exclusively by Vapi AI Web SDK)"
+            aria-label="Open Jarvis Voice Assistant"
+          >
+            {/* Animated Glowing Rings */}
+            <div
+              className="absolute inset-0 rounded-full border border-cyan-400/40 dark:border-cyan-400/30 animate-spin"
+              style={{ animationDuration: '8s' }}
+            />
+            <div
+              className="absolute inset-1 rounded-full border border-dashed border-blue-400/50 dark:border-blue-400/40 animate-spin"
+              style={{ animationDuration: '14s', animationDirection: 'reverse' }}
+            />
 
-          {/* Central Reactor Core */}
-          <div className="relative z-10 flex items-center justify-center">
-            {callStatus === 'active' ? (
-              isAssistantSpeaking ? (
-                <Volume2 className="w-6 h-6 text-white animate-bounce" />
+            {/* Central Reactor Core */}
+            <div className="relative z-10 flex items-center justify-center">
+              {callStatus === 'active' ? (
+                isAssistantSpeaking ? (
+                  <Volume2 className="w-6 h-6 text-white animate-bounce" />
+                ) : (
+                  <Mic className="w-6 h-6 text-white animate-pulse" />
+                )
+              ) : callStatus === 'connecting' ? (
+                <RefreshCw className="w-6 h-6 text-amber-500 dark:text-amber-300 animate-spin" />
               ) : (
-                <Mic className="w-6 h-6 text-white animate-pulse" />
-              )
-            ) : callStatus === 'connecting' ? (
-              <RefreshCw className="w-6 h-6 text-amber-500 dark:text-amber-300 animate-spin" />
-            ) : (
-              <Bot className="w-6 h-6 text-cyan-600 dark:text-cyan-300 group-hover:scale-110 transition-transform" />
-            )}
-          </div>
+                <Bot className="w-6 h-6 text-cyan-600 dark:text-cyan-300 group-hover:scale-110 transition-transform" />
+              )}
+            </div>
 
-          {/* Status Dot */}
-          <span
-            className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
-              callStatus === 'active'
-                ? 'bg-emerald-500 animate-ping'
-                : callStatus === 'connecting'
-                ? 'bg-amber-500 animate-pulse'
-                : 'bg-cyan-500 dark:bg-cyan-400'
-            }`}
-          />
-        </button>
-      </div>
+            {/* Status Dot */}
+            <span
+              className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
+                callStatus === 'active'
+                  ? 'bg-emerald-500 animate-ping'
+                  : callStatus === 'connecting'
+                  ? 'bg-amber-500 animate-pulse'
+                  : 'bg-cyan-500 dark:bg-cyan-400'
+              }`}
+            />
+          </button>
+        </div>
+      )}
 
       {/* ===================================================================
        * 2. Jarvis Command Center HUD Modal
@@ -1293,7 +1444,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
           className={`fixed z-50 transition-all duration-300 shadow-2xl no-print ${
             isMaximized
               ? 'inset-4 md:inset-8'
-              : 'bottom-24 right-6 w-[94vw] max-w-[560px] h-[720px] max-h-[88vh]'
+              : 'bottom-20 right-4 sm:right-6 w-[92vw] sm:w-[440px] max-w-[440px] h-[680px] max-h-[85vh]'
           }`}
         >
           <div className="w-full h-full rounded-2xl bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-cyan-500/30 backdrop-blur-xl flex flex-col overflow-hidden shadow-2xl">
@@ -1716,10 +1867,22 @@ export const JarvisVoiceAssistant: React.FC = () => {
                   {/* Quick Command Suggestions */}
                   <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-900/60 border-t border-slate-200 dark:border-slate-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] no-scrollbar">
                     <button
+                      onClick={() => executeClientAction('open_app_or_website', { app: 'all_links' })}
+                      className="px-2.5 py-1 rounded-full bg-cyan-50 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60 hover:bg-cyan-100 whitespace-nowrap transition-colors shadow-2xs font-bold cursor-pointer"
+                    >
+                      🔗 Open LinkedIn & GitHub
+                    </button>
+                    <button
                       onClick={() => executeClientAction('open_app_or_website', { app: 'linkedin' })}
                       className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 whitespace-nowrap transition-colors shadow-2xs font-medium cursor-pointer"
                     >
                       🌐 Open LinkedIn
+                    </button>
+                    <button
+                      onClick={() => executeClientAction('open_app_or_website', { app: 'github' })}
+                      className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 whitespace-nowrap transition-colors shadow-2xs font-medium cursor-pointer"
+                    >
+                      🐙 Open GitHub
                     </button>
                     <button
                       onClick={() => executeClientAction('post_to_linkedin', { topic: 'Placement Milestone' })}
@@ -1728,10 +1891,10 @@ export const JarvisVoiceAssistant: React.FC = () => {
                       📝 Post to LinkedIn
                     </button>
                     <button
-                      onClick={() => executeClientAction('open_resume_pdf', { action: 'export_pdf' })}
+                      onClick={() => executeClientAction('open_resume_pdf', { action: 'open_selva_resume' })}
                       className="px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 whitespace-nowrap transition-colors shadow-2xs font-medium cursor-pointer"
                     >
-                      📄 Open Resume PDF
+                      📄 Open Selva Resume (.docx)
                     </button>
                     <button
                       onClick={() => executeClientAction('open_job_profile', {})}

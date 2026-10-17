@@ -50,9 +50,11 @@ VAPI_JARVIS_SYSTEM_PROMPT = (
     "master resume, tailored versions, ATS scores, placement applications, and interview performance. "
     "You also have FULL PERMISSION to open external applications (such as LinkedIn, GitHub), navigate through apps and pages "
     "(such as opening job profiles, student profile, opportunities), and post messages or share updates to LinkedIn. "
-    "Whenever the candidate asks to open LinkedIn ('open linkedin'), post something on LinkedIn ('lets post something on linkedin'), "
-    "open a job profile ('open a job profile'), or open their resume PDF ('open my resume pdf'), "
-    "immediately invoke the relevant tool (open_app_or_website, post_to_linkedin, open_job_profile, open_resume_pdf). "
+    "Whenever the candidate asks to open LinkedIn ('open linkedin'), GitHub ('open github'), both links ('open all links'), "
+    "post something on LinkedIn ('lets post something on linkedin'), open a job profile ('open a job profile'), "
+    "or open their resume ('open my resume', 'open resume', 'show resume', 'open resume docx', 'open resume pdf'), "
+    "immediately invoke the relevant tool (open_app_or_website, post_to_linkedin, open_job_profile, open_resume_pdf) "
+    "to open Selva Thevar's master resume document (Selva Resume.docx). "
     "You are fully empowered to execute all navigation, app opening, and data retrieval actions without restrictions."
 )
 
