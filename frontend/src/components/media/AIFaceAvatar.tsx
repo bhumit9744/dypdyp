@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot } from 'lucide-react';
+import { Bot, Volume2, Mic, Sparkles, Activity } from 'lucide-react';
 import { InterviewerPanelState } from './InterviewerPanel';
 
 export type AvatarPersona = 'sarah' | 'alex' | 'nova' | 'jarvis';
@@ -11,15 +11,6 @@ interface AIFaceAvatarProps {
   className?: string;
 }
 
-interface VisemeParams {
-  open: number;      // 0.0 (closed) to 1.0 (wide open)
-  width: number;     // 0.8 (puckered) to 1.3 (wide smile)
-  jaw: number;       // 0.0 to 1.0
-  teethVisible: boolean;
-  tongueUp: boolean;
-  duration: number;  // ms
-}
-
 export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
   state,
   persona = 'sarah',
@@ -28,24 +19,16 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
 }) => {
   const [selectedPersona, setSelectedPersona] = useState<AvatarPersona>(persona);
 
-  // Viseme morph state (lerped smoothly at 60fps)
-  const [mouthOpen, setMouthOpen] = useState<number>(0);
-  const [mouthWidth, setMouthWidth] = useState<number>(1);
-  const [jawDrop, setJawDrop] = useState<number>(0);
+  // Natural human expression state
   const [blinkProgress, setBlinkProgress] = useState<number>(0); // 0 (open) to 1 (closed)
   const [headTilt, setHeadTilt] = useState<{ x: number; y: number; r: number }>({ x: 0, y: 0, r: 0 });
-  const [browRaise, setBrowRaise] = useState<number>(0); // 0 (neutral) to 1 (raised)
+  const [browRaise, setBrowRaise] = useState<number>(0);
+
+  // Sound vibration frequency bands (16 harmonic audio bars for sound vibration animation)
+  const [soundVibrationBands, setSoundVibrationBands] = useState<number[]>(Array(16).fill(0.1));
 
   // Animation and timing refs
   const animFrameRef = useRef<number | null>(null);
-  const currentOpenRef = useRef<number>(0);
-  const currentWidthRef = useRef<number>(1);
-  const currentJawRef = useRef<number>(0);
-  const targetOpenRef = useRef<number>(0);
-  const targetWidthRef = useRef<number>(1);
-  const targetJawRef = useRef<number>(0);
-  const phonemeIndexRef = useRef<number>(0);
-  const phonemeExpiryRef = useRef<number>(0);
 
   // Sync external persona change
   useEffect(() => {
@@ -53,7 +36,7 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
   }, [persona]);
 
   // -------------------------------------------------------------------------
-  // 1. Natural Human Eye-Blinking Engine (Realistic 130ms sweep with double-blink)
+  // 1. Natural Human Eye-Blinking Engine (Realistic 140ms sweep with micro-blinks)
   // -------------------------------------------------------------------------
   useEffect(() => {
     let blinkTimer: any;
@@ -62,18 +45,17 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
     const performBlink = (isDouble = false) => {
       isBlinking = true;
       const startTime = performance.now();
-      const blinkDuration = 140; // 140ms full blink cycle
+      const blinkDuration = 140;
 
       const stepBlink = (now: number) => {
         const elapsed = now - startTime;
         const progress = Math.min(1, elapsed / blinkDuration);
 
-        // Sinusoidal blink curve (fast close, smooth open)
         let eyeClosure = 0;
         if (progress < 0.4) {
-          eyeClosure = progress / 0.4; // closing
+          eyeClosure = progress / 0.4;
         } else {
-          eyeClosure = 1 - (progress - 0.4) / 0.6; // opening
+          eyeClosure = 1 - (progress - 0.4) / 0.6;
         }
 
         setBlinkProgress(Math.max(0, Math.min(1, eyeClosure)));
@@ -84,7 +66,6 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
           setBlinkProgress(0);
           isBlinking = false;
 
-          // 18% chance of immediate subtle micro-double blink
           if (!isDouble && Math.random() < 0.18) {
             setTimeout(() => performBlink(true), 90);
           } else {
@@ -97,7 +78,6 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
     };
 
     const scheduleNextBlink = () => {
-      // Human blink rate: every 3.2 to 5.4 seconds
       const delay = 3200 + Math.random() * 2200;
       blinkTimer = setTimeout(() => {
         performBlink();
@@ -109,98 +89,67 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
   }, []);
 
   // -------------------------------------------------------------------------
-  // 2. Anatomical Phoneme Visemes & 60FPS Fluid Lerp Loop
+  // 2. 60FPS Sound Vibration Visualizer Engine & Natural Facial Presence
   // -------------------------------------------------------------------------
   useEffect(() => {
     let active = true;
-
-    // Organic spoken phoneme stream sequence
-    const visemePhonemes: VisemeParams[] = [
-      { open: 0.85, width: 1.05, jaw: 0.8, teethVisible: true, tongueUp: false, duration: 170 }, // AA (start word)
-      { open: 0.35, width: 1.25, jaw: 0.3, teethVisible: true, tongueUp: false, duration: 140 }, // EE
-      { open: 0.70, width: 0.88, jaw: 0.65, teethVisible: true, tongueUp: false, duration: 180 }, // OH
-      { open: 0.25, width: 1.10, jaw: 0.2, teethVisible: true, tongueUp: true, duration: 130 },  // TH
-      { open: 0.60, width: 1.00, jaw: 0.55, teethVisible: true, tongueUp: false, duration: 150 }, // AH
-      { open: 0.05, width: 0.96, jaw: 0.05, teethVisible: false, tongueUp: false, duration: 120 }, // MM (word pause)
-      { open: 0.45, width: 1.18, jaw: 0.4, teethVisible: true, tongueUp: false, duration: 160 }, // IH
-      { open: 0.80, width: 0.95, jaw: 0.75, teethVisible: true, tongueUp: false, duration: 170 }, // AW
-      { open: 0.00, width: 1.00, jaw: 0.0, teethVisible: false, tongueUp: false, duration: 160 }, // Breath pause
-    ];
 
     const updateLoop = (now: number) => {
       if (!active) return;
 
       if (state === 'speaking') {
-        // Advance phoneme if current expired
-        if (now >= phonemeExpiryRef.current) {
-          const nextIndex = (phonemeIndexRef.current + 1) % visemePhonemes.length;
-          phonemeIndexRef.current = nextIndex;
-          const phoneme = visemePhonemes[nextIndex];
-
-          // Add slight natural duration variance (±20ms)
-          const jitter = (Math.random() - 0.5) * 40;
-          phonemeExpiryRef.current = now + Math.max(90, phoneme.duration + jitter);
-
-          targetOpenRef.current = phoneme.open;
-          targetWidthRef.current = phoneme.width;
-          targetJawRef.current = phoneme.jaw;
-        }
-
-        // Active speech conversational head movement and eyebrow engagement
-        setHeadTilt({
-          x: Math.sin(now * 0.0028) * 1.6,
-          y: Math.cos(now * 0.0035) * 1.2,
-          r: Math.sin(now * 0.002) * 0.8
+        // Active speech: Calculate dynamic 16-band sound vibration frequencies
+        const freqs = Array.from({ length: 16 }, (_, i) => {
+          const wave1 = Math.sin(now * 0.014 + i * 0.52) * 0.45 + 0.45;
+          const wave2 = Math.cos(now * 0.021 + i * 0.88) * 0.35 + 0.35;
+          const wave3 = Math.sin(now * 0.008 + i * 0.32) * 0.2 + 0.2;
+          return Math.min(1, Math.max(0.15, (wave1 + wave2 + wave3) * 0.78));
         });
-        setBrowRaise(0.3 + Math.sin(now * 0.002) * 0.15); // raised eyebrows during questions
+        setSoundVibrationBands(freqs);
+
+        // Conversational head movement and attentive eyebrow lift
+        setHeadTilt({
+          x: Math.sin(now * 0.0028) * 1.5,
+          y: Math.cos(now * 0.0035) * 1.1,
+          r: Math.sin(now * 0.002) * 0.7
+        });
+        setBrowRaise(0.3 + Math.sin(now * 0.002) * 0.12);
       } else if (state === 'listening') {
-        // Attentive candidate listening: gentle nod & warm micro-smile
-        targetOpenRef.current = 0.0;
-        targetWidthRef.current = 1.05; // pleasant subtle resting smile
-        targetJawRef.current = 0.0;
+        // Listening mode: Gentle undulating acoustic rhythm
+        const freqs = Array.from({ length: 16 }, (_, i) => {
+          const wave = Math.sin(now * 0.006 + i * 0.4) * 0.15 + 0.2;
+          return Math.max(0.1, wave);
+        });
+        setSoundVibrationBands(freqs);
         setBrowRaise(0.1);
 
-        // Periodic gentle listening nod
+        // Gentle listening nod
         const nodPhase = (now * 0.0018) % (Math.PI * 2);
-        const nodY = Math.sin(nodPhase) > 0.4 ? Math.sin(nodPhase * 2) * 2.2 : 0;
+        const nodY = Math.sin(nodPhase) > 0.4 ? Math.sin(nodPhase * 2) * 2.0 : 0;
         setHeadTilt({
           x: Math.sin(now * 0.001) * 0.8,
           y: nodY,
           r: Math.sin(now * 0.0008) * 0.5
         });
       } else if (state === 'evaluating') {
-        // Evaluating / reading candidate response rubric: thoughtful tilt
-        targetOpenRef.current = 0.0;
-        targetWidthRef.current = 0.98;
-        targetJawRef.current = 0.0;
+        // Evaluating mode: Thoughtful tilt
+        setSoundVibrationBands(Array(16).fill(0.12));
         setBrowRaise(0.0);
         setHeadTilt({
           x: 1.4,
-          y: 2.2, // looking down slightly at rubric
-          r: 1.2
+          y: 2.0,
+          r: 1.0
         });
       } else {
-        // Idle ready state: gentle breathing float
-        targetOpenRef.current = 0.0;
-        targetWidthRef.current = 1.0;
-        targetJawRef.current = 0.0;
+        // Idle ready state: Resting vibration and calm breathing float
+        setSoundVibrationBands(Array(16).fill(0.08));
         setBrowRaise(0.0);
         setHeadTilt({
-          x: Math.sin(now * 0.001) * 0.5,
-          y: Math.sin(now * 0.0015) * 0.8, // gentle breathing
+          x: Math.sin(now * 0.001) * 0.4,
+          y: Math.sin(now * 0.0015) * 0.7,
           r: 0
         });
       }
-
-      // Smooth Spring / Lerp interpolation (35% per frame @ 60fps)
-      const lerpSpeed = 0.35;
-      currentOpenRef.current += (targetOpenRef.current - currentOpenRef.current) * lerpSpeed;
-      currentWidthRef.current += (targetWidthRef.current - currentWidthRef.current) * lerpSpeed;
-      currentJawRef.current += (targetJawRef.current - currentJawRef.current) * lerpSpeed;
-
-      setMouthOpen(currentOpenRef.current);
-      setMouthWidth(currentWidthRef.current);
-      setJawDrop(currentJawRef.current);
 
       animFrameRef.current = requestAnimationFrame(updateLoop);
     };
@@ -213,22 +162,13 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
   }, [state]);
 
   // -------------------------------------------------------------------------
-  // Persona Facial Rig Specifications (Measured on 16:9 Widescreen Portraits)
+  // Persona Specifications (Natural Eye Positions for Blinking)
   // -------------------------------------------------------------------------
   const personaSpecs = {
     sarah: {
       name: 'Sarah Jenkins',
       role: 'Principal System Architect',
       image: '/avatars/sarah.jpg',
-      mouth: {
-        top: 44.4,    // % Y center
-        left: 50.0,   // % X center
-        width: 7.2,   // % W
-        height: 2.8,  // % H resting
-        skinTone: '#c79d82',
-        lipUpper: '#a85a64',
-        lipLower: '#be6b76'
-      },
       eyes: {
         leftEye: { top: 31.5, left: 46.8, w: 3.8, h: 2.0 },
         rightEye: { top: 31.5, left: 53.2, w: 3.8, h: 2.0 },
@@ -239,15 +179,6 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
       name: 'Alex Vance',
       role: 'Senior Staff Tech Lead',
       image: '/avatars/alex.jpg',
-      mouth: {
-        top: 42.6,    // % Y center
-        left: 50.0,   // % X center
-        width: 8.4,   // % W
-        height: 3.0,  // % H resting
-        skinTone: '#cb9a7d',
-        lipUpper: '#8d5045',
-        lipLower: '#a66255'
-      },
       eyes: {
         leftEye: { top: 31.0, left: 46.5, w: 4.4, h: 2.2 },
         rightEye: { top: 31.0, left: 53.5, w: 4.4, h: 2.2 },
@@ -260,9 +191,13 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
   const currentPhotoConfig = isPhotorealistic ? personaSpecs[selectedPersona as 'sarah' | 'alex'] : null;
 
   return (
-    <div className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden select-none bg-slate-950 ${className}`}>
+    <div
+      className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden select-none bg-slate-950 transition-shadow duration-300 ${
+        state === 'speaking' ? 'shadow-[inset_0_0_50px_rgba(16,185,129,0.2)]' : ''
+      } ${className}`}
+    >
       {/* ===================================================================
-       * STAGE 1: Photorealistic Avatars with Seamless Anatomical Visemes
+       * STAGE 1: Photorealistic Avatars (Clean Natural Portrait with NO Lip-Syncing)
        * =================================================================== */}
       {isPhotorealistic && currentPhotoConfig && (
         <div
@@ -272,7 +207,7 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
             transition: 'transform 0.08s ease-out'
           }}
         >
-          {/* High-Definition 8K Studio Portrait Base */}
+          {/* Pristine, High-Definition 8K Studio Portrait Base */}
           <img
             src={currentPhotoConfig.image}
             alt={currentPhotoConfig.name}
@@ -281,7 +216,7 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
           />
 
           {/* ---------------------------------------------------------------
-           * Realistic Eyelid Blinking Mechanism
+           * Natural Eye-Blinking Mechanism
            * --------------------------------------------------------------- */}
           {blinkProgress > 0.05 && (
             <>
@@ -318,121 +253,39 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
           )}
 
           {/* ---------------------------------------------------------------
-           * Seamless Anatomical Lip-Syncing Rig
-           * Only renders dynamic inner cavity and articulating lips when speaking
+           * Acoustic Sound Vibration Ripple Rings (Vibrates when speaking)
            * --------------------------------------------------------------- */}
-          {mouthOpen > 0.08 && (
-            <div
-              className="absolute pointer-events-none z-20 flex items-center justify-center transition-transform"
-              style={{
-                top: `${currentPhotoConfig.mouth.top + jawDrop * 0.4}%`,
-                left: `${currentPhotoConfig.mouth.left}%`,
-                width: `${currentPhotoConfig.mouth.width * mouthWidth}%`,
-                height: `${Math.max(1.2, currentPhotoConfig.mouth.height * (1.2 + mouthOpen * 1.8))}%`,
-                transform: 'translate(-50%, -50%)',
-                // Feathered radial mask so edges melt seamlessly into facial skin with NO hard borders
-                WebkitMaskImage: 'radial-gradient(ellipse 90% 85% at center, black 50%, rgba(0,0,0,0.8) 75%, transparent 100%)',
-                maskImage: 'radial-gradient(ellipse 90% 85% at center, black 50%, rgba(0,0,0,0.8) 75%, transparent 100%)'
-              }}
-            >
-              {/* Full Anatomical SVG Mouth Rig (Upper Lip, Lower Lip, Teeth, Tongue, Cavity) */}
-              <svg
-                viewBox="0 0 200 100"
-                className="w-full h-full overflow-visible"
-                preserveAspectRatio="none"
-              >
-                <defs>
-                  {/* Pearlescent Teeth Gradient */}
-                  <linearGradient id="teethGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#ffffff" />
-                    <stop offset="60%" stopColor="#f1f5f9" />
-                    <stop offset="100%" stopColor="#cbd5e1" />
-                  </linearGradient>
-
-                  {/* Deep Throat Oral Cavity Gradient */}
-                  <radialGradient id="cavityGrad" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#1a0408" />
-                    <stop offset="70%" stopColor="#2b0a12" />
-                    <stop offset="100%" stopColor="#3d101b" />
-                  </radialGradient>
-
-                  {/* Soft Tongue Gradient */}
-                  <linearGradient id="tongueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#c56172" />
-                    <stop offset="100%" stopColor="#963e4e" />
-                  </linearGradient>
-                </defs>
-
-                {/* 1. Deep Oral Cavity */}
-                <ellipse
-                  cx="100"
-                  cy="50"
-                  rx={85 * mouthWidth}
-                  ry={Math.max(12, 38 * mouthOpen)}
-                  fill="url(#cavityGrad)"
-                />
-
-                {/* 2. Upper Teeth Row (Visible when mouth drops) */}
-                <path
-                  d={`M ${100 - 58 * mouthWidth} ${32}
-                     Q 100 ${36} ${100 + 58 * mouthWidth} ${32}
-                     L ${100 + 50 * mouthWidth} ${44 + mouthOpen * 4}
-                     Q 100 ${48 + mouthOpen * 4} ${100 - 50 * mouthWidth} ${44 + mouthOpen * 4} Z`}
-                  fill="url(#teethGrad)"
-                  opacity={Math.min(1, mouthOpen * 1.6)}
-                />
-
-                {/* Subtle Tooth Separation Lines */}
-                {mouthOpen > 0.25 && (
-                  <g opacity="0.35" stroke="#94a3b8" strokeWidth="0.8">
-                    <line x1="100" y1="36" x2="100" y2="47" />
-                    <line x1="90" y1="35" x2="89" y2="46" />
-                    <line x1="110" y1="35" x2="111" y2="46" />
-                    <line x1="80" y1="34" x2="79" y2="44" />
-                    <line x1="120" y1="34" x2="121" y2="44" />
-                  </g>
-                )}
-
-                {/* 3. Tongue Arch at Bottom of Cavity */}
-                {mouthOpen > 0.3 && (
-                  <ellipse
-                    cx="100"
-                    cy={70 + (1 - mouthOpen) * 6}
-                    rx={48 * mouthWidth}
-                    ry={18 * mouthOpen}
-                    fill="url(#tongueGrad)"
-                  />
-                )}
-
-                {/* 4. Upper Lip (Cupid's Bow Contour matching face tone) */}
-                <path
-                  d={`M ${100 - 82 * mouthWidth} 48
-                     Q ${100 - 42 * mouthWidth} ${30 - browRaise * 3} 94 ${34}
-                     Q 100 ${37} 106 ${34}
-                     Q ${100 + 42 * mouthWidth} ${30 - browRaise * 3} ${100 + 82 * mouthWidth} 48
-                     Q 100 ${44 - mouthOpen * 6} ${100 - 82 * mouthWidth} 48 Z`}
-                  fill={currentPhotoConfig.mouth.lipUpper}
-                  opacity="0.95"
-                />
-
-                {/* 5. Lower Lip (Full natural contour matching face tone) */}
-                <path
-                  d={`M ${100 - 82 * mouthWidth} 50
-                     Q 100 ${52 + mouthOpen * 6} ${100 + 82 * mouthWidth} 50
-                     Q 100 ${72 + mouthOpen * 20} ${100 - 82 * mouthWidth} 50 Z`}
-                  fill={currentPhotoConfig.mouth.lipLower}
-                  opacity="0.95"
-                />
-
-                {/* Lower Lip Specular Highlight */}
-                <ellipse
-                  cx="100"
-                  cy={56 + mouthOpen * 14}
-                  rx={26 * mouthWidth}
-                  ry={3.5}
-                  fill="rgba(255, 230, 230, 0.3)"
-                />
-              </svg>
+          {state === 'speaking' && (
+            <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center overflow-hidden">
+              <div
+                className="absolute rounded-full border-2 border-emerald-400/40 pointer-events-none animate-ping"
+                style={{
+                  width: '240px',
+                  height: '240px',
+                  animationDuration: '1.8s',
+                  animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)'
+                }}
+              />
+              <div
+                className="absolute rounded-full border border-teal-400/30 pointer-events-none animate-ping"
+                style={{
+                  width: '340px',
+                  height: '340px',
+                  animationDuration: '2.4s',
+                  animationDelay: '0.5s',
+                  animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)'
+                }}
+              />
+              <div
+                className="absolute rounded-full border border-cyan-400/20 pointer-events-none animate-ping"
+                style={{
+                  width: '460px',
+                  height: '460px',
+                  animationDuration: '3.0s',
+                  animationDelay: '1.0s',
+                  animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)'
+                }}
+              />
             </div>
           )}
 
@@ -442,213 +295,98 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
       )}
 
       {/* ===================================================================
-       * STAGE 2: NOVA 3D — Cutting-Edge Interactive Vector Digital Human
+       * STAGE 2: NOVA 3D Digital Human (Clean Vector Human without Visemes)
        * =================================================================== */}
       {selectedPersona === 'nova' && (
         <div
           className="relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950"
           style={{
-            transform: `translate3d(${headTilt.x * 1.5}px, ${headTilt.y * 1.5}px, 0) rotate(${headTilt.r * 1.2}deg)`,
+            transform: `translate3d(${headTilt.x}px, ${headTilt.y}px, 0) rotate(${headTilt.r}deg)`,
             transition: 'transform 0.08s ease-out'
           }}
         >
-          {/* Interactive 3D Vector Head Rig */}
-          <div className="relative w-72 h-80 sm:w-80 sm:h-92 md:w-96 md:h-108 flex items-center justify-center">
-            <svg
-              viewBox="0 0 400 480"
-              className="w-full h-full filter drop-shadow-[0_15px_35px_rgba(30,58,138,0.35)]"
-            >
+          {/* Subtle Ambient Radial Glow */}
+          <div className="absolute w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+
+          {/* Acoustic Sound Vibration Rings for Nova */}
+          {state === 'speaking' && (
+            <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center overflow-hidden">
+              <div className="absolute w-64 h-64 rounded-full border border-cyan-400/40 animate-ping" style={{ animationDuration: '2s' }} />
+              <div className="absolute w-80 h-80 rounded-full border border-blue-400/25 animate-ping" style={{ animationDuration: '2.6s', animationDelay: '0.6s' }} />
+            </div>
+          )}
+
+          <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 z-20">
+            <svg viewBox="0 0 400 400" className="w-full h-full drop-shadow-[0_10px_25px_rgba(0,0,0,0.8)]">
               <defs>
-                {/* 3D Skin Shading Gradient */}
-                <radialGradient id="novaSkin" cx="48%" cy="40%" r="65%">
-                  <stop offset="0%" stopColor="#fde047" stopOpacity="0.15" />
-                  <stop offset="25%" stopColor="#e2e8f0" />
-                  <stop offset="70%" stopColor="#94a3b8" />
-                  <stop offset="100%" stopColor="#475569" />
-                </radialGradient>
-
-                {/* Cyber Hair Shading */}
+                <linearGradient id="novaSkin" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f8fafc" />
+                  <stop offset="70%" stopColor="#e2e8f0" />
+                  <stop offset="100%" stopColor="#cbd5e1" />
+                </linearGradient>
                 <linearGradient id="novaHair" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#38bdf8" />
-                  <stop offset="40%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#1e1b4b" />
+                  <stop offset="0%" stopColor="#0ea5e9" />
+                  <stop offset="50%" stopColor="#3b82f6" />
+                  <stop offset="100%" stopColor="#6366f1" />
                 </linearGradient>
-
-                {/* Glowing Iris Gradient */}
-                <radialGradient id="novaIris" cx="45%" cy="45%" r="55%">
-                  <stop offset="0%" stopColor="#a5f3fc" />
-                  <stop offset="45%" stopColor="#06b6d4" />
-                  <stop offset="85%" stopColor="#0369a1" />
-                  <stop offset="100%" stopColor="#082f49" />
-                </radialGradient>
-
-                {/* Lip Gradient */}
-                <linearGradient id="novaLip" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f472b6" />
-                  <stop offset="100%" stopColor="#db2777" />
-                </linearGradient>
-
-                {/* Soft Shadow */}
-                <filter id="novaGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="6" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
               </defs>
 
-              {/* 1. Neck and Collar */}
-              <path
-                d="M 160 360 L 160 440 L 240 440 L 240 360 Z"
-                fill="#64748b"
-              />
-              <path
-                d="M 120 440 Q 200 470 280 440 L 320 480 L 80 480 Z"
-                fill="#1e293b"
-                stroke="#38bdf8"
-                strokeWidth="1.5"
-              />
+              {/* Head Silhouette */}
+              <ellipse cx="200" cy="205" rx="100" ry="125" fill="url(#novaSkin)" />
 
-              {/* 2. Face Base & Jawline */}
+              {/* Hair Geometry */}
               <path
-                d={`M 110 160
-                   C 105 280 130 380 200 ${390 + jawDrop * 12}
-                   C 270 380 295 280 290 160
-                   C 285 70 115 70 110 160 Z`}
-                fill="url(#novaSkin)"
-                stroke="#0ea5e9"
-                strokeWidth="1.5"
-              />
-
-              {/* 3. Sleek Cyber Hair */}
-              <path
-                d="M 95 180 C 85 90 140 40 200 40 C 270 40 320 90 305 180 C 290 120 270 95 200 95 C 130 95 110 120 95 180 Z"
+                d="M 100 180 Q 90 80 200 70 Q 310 80 300 180 Q 285 110 200 100 Q 115 110 100 180 Z"
                 fill="url(#novaHair)"
-                filter="url(#novaGlow)"
               />
 
-              {/* 4. Left Eye & Iris */}
-              <g transform="translate(150, 205)">
-                {/* Sclera (White) */}
-                <ellipse cx="0" cy="0" rx="22" ry={14 * (1 - blinkProgress)} fill="#f8fafc" />
-                {/* Glowing Iris */}
-                {blinkProgress < 0.8 && (
-                  <>
-                    <circle cx={headTilt.x * 1.5} cy={headTilt.y * 1.5} r="10" fill="url(#novaIris)" />
-                    <circle cx={headTilt.x * 1.5} cy={headTilt.y * 1.5} r="5" fill="#0f172a" />
-                    <circle cx={headTilt.x * 1.5 - 3} cy={headTilt.y * 1.5 - 3} r="2.5" fill="#ffffff" />
-                  </>
-                )}
-                {/* Eyelid on Blink */}
-                {blinkProgress > 0.1 && (
-                  <ellipse cx="0" cy={-14 + 14 * blinkProgress} rx="23" ry={14 * blinkProgress} fill="#64748b" />
-                )}
-                {/* Upper Eyelash Line */}
-                <path d="M -23 -1 Q 0 -15 23 -1" stroke="#0f172a" strokeWidth="2.5" fill="none" />
+              {/* Eyes */}
+              <g transform="translate(150, 185)">
+                <ellipse cx="0" cy="0" rx="14" ry={Math.max(1.5, 9 * (1 - blinkProgress))} fill="#0f172a" />
+                {blinkProgress < 0.8 && <circle cx="-2" cy="-2" r="3" fill="#ffffff" />}
+              </g>
+              <g transform="translate(250, 185)">
+                <ellipse cx="0" cy="0" rx="14" ry={Math.max(1.5, 9 * (1 - blinkProgress))} fill="#0f172a" />
+                {blinkProgress < 0.8 && <circle cx="-2" cy="-2" r="3" fill="#ffffff" />}
               </g>
 
-              {/* 5. Right Eye & Iris */}
-              <g transform="translate(250, 205)">
-                {/* Sclera */}
-                <ellipse cx="0" cy="0" rx="22" ry={14 * (1 - blinkProgress)} fill="#f8fafc" />
-                {/* Glowing Iris */}
-                {blinkProgress < 0.8 && (
-                  <>
-                    <circle cx={headTilt.x * 1.5} cy={headTilt.y * 1.5} r="10" fill="url(#novaIris)" />
-                    <circle cx={headTilt.x * 1.5} cy={headTilt.y * 1.5} r="5" fill="#0f172a" />
-                    <circle cx={headTilt.x * 1.5 - 3} cy={headTilt.y * 1.5 - 3} r="2.5" fill="#ffffff" />
-                  </>
-                )}
-                {/* Eyelid on Blink */}
-                {blinkProgress > 0.1 && (
-                  <ellipse cx="0" cy={-14 + 14 * blinkProgress} rx="23" ry={14 * blinkProgress} fill="#64748b" />
-                )}
-                {/* Upper Eyelash Line */}
-                <path d="M -23 -1 Q 0 -15 23 -1" stroke="#0f172a" strokeWidth="2.5" fill="none" />
-              </g>
-
-              {/* 6. Expressive Eyebrows */}
+              {/* Eyebrows */}
               <path
-                d={`M 125 ${180 - browRaise * 8} Q 150 ${165 - browRaise * 10} 175 ${178 - browRaise * 6}`}
-                stroke="#0f172a"
-                strokeWidth="4"
-                strokeLinecap="round"
+                d={`M 134 ${165 - browRaise * 6} Q 150 ${158 - browRaise * 8} 168 ${165 - browRaise * 6}`}
                 fill="none"
+                stroke="#334155"
+                strokeWidth="3.5"
+                strokeLinecap="round"
               />
               <path
-                d={`M 225 ${178 - browRaise * 6} Q 250 ${165 - browRaise * 10} 275 ${180 - browRaise * 8}`}
-                stroke="#0f172a"
-                strokeWidth="4"
-                strokeLinecap="round"
+                d={`M 232 ${165 - browRaise * 6} Q 250 ${158 - browRaise * 8} 266 ${165 - browRaise * 6}`}
                 fill="none"
-              />
-
-              {/* 7. Nose */}
-              <path
-                d="M 200 205 L 195 260 Q 200 268 205 260 Z"
-                fill="none"
-                stroke="#64748b"
-                strokeWidth="2"
+                stroke="#334155"
+                strokeWidth="3.5"
                 strokeLinecap="round"
               />
 
-              {/* 8. Fully Articulated Viseme Mouth */}
-              <g transform={`translate(200, ${315 + jawDrop * 8})`}>
-                {/* Oral Cavity */}
-                {mouthOpen > 0.05 && (
-                  <ellipse
-                    cx="0"
-                    cy="0"
-                    rx={38 * mouthWidth}
-                    ry={Math.max(6, 22 * mouthOpen)}
-                    fill="#1e1014"
-                  />
-                )}
+              {/* Nose */}
+              <path d="M 200 195 L 196 235 L 206 235" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" />
 
-                {/* Upper Teeth */}
-                {mouthOpen > 0.1 && (
-                  <rect
-                    x={-24 * mouthWidth}
-                    y={-14 * mouthOpen}
-                    width={48 * mouthWidth}
-                    height={9}
-                    rx="3"
-                    fill="#ffffff"
-                  />
-                )}
-
-                {/* Tongue */}
-                {mouthOpen > 0.35 && (
-                  <ellipse
-                    cx="0"
-                    cy={12 * mouthOpen}
-                    rx={20 * mouthWidth}
-                    ry={7 * mouthOpen}
-                    fill="#ec4899"
-                  />
-                )}
-
-                {/* Upper Lip */}
-                <path
-                  d={`M ${-42 * mouthWidth} 0
-                     Q ${-20 * mouthWidth} ${-10 - mouthOpen * 4} 0 ${-6}
-                     Q ${20 * mouthWidth} ${-10 - mouthOpen * 4} ${42 * mouthWidth} 0
-                     Q 0 ${-2 + mouthOpen * 2} ${-42 * mouthWidth} 0 Z`}
-                  fill="url(#novaLip)"
-                />
-
-                {/* Lower Lip */}
-                <path
-                  d={`M ${-42 * mouthWidth} 0
-                     Q 0 ${4 + mouthOpen * 2} ${42 * mouthWidth} 0
-                     Q 0 ${16 + mouthOpen * 16} ${-42 * mouthWidth} 0 Z`}
-                  fill="url(#novaLip)"
+              {/* Clean Cyber Soundwave Mouth Line (NO artificial viseme opening) */}
+              <g transform="translate(200, 275)">
+                <line
+                  x1="-24"
+                  y1="0"
+                  x2="24"
+                  y2="0"
+                  stroke="#3b82f6"
+                  strokeWidth={state === 'speaking' ? '3' : '2'}
+                  strokeLinecap="round"
+                  className={state === 'speaking' ? 'animate-pulse' : ''}
+                  opacity={state === 'speaking' ? '0.95' : '0.75'}
                 />
               </g>
 
-              {/* Subtle Tech Cyber Cheek Accents */}
-              <circle cx="120" cy="280" r="2.5" fill="#38bdf8" opacity="0.6" />
-              <circle cx="280" cy="280" r="2.5" fill="#38bdf8" opacity="0.6" />
-              <line x1="115" y1="290" x2="135" y2="290" stroke="#38bdf8" strokeWidth="1" opacity="0.4" />
-              <line x1="265" y1="290" x2="285" y2="290" stroke="#38bdf8" strokeWidth="1" opacity="0.4" />
+              {/* Cyber Accents */}
+              <circle cx="120" cy="245" r="2.5" fill="#38bdf8" opacity="0.6" />
+              <circle cx="280" cy="245" r="2.5" fill="#38bdf8" opacity="0.6" />
             </svg>
           </div>
         </div>
@@ -665,46 +403,95 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
             <div className="absolute inset-3 rounded-full border border-dashed border-blue-400/50 animate-spin" style={{ animationDuration: '16s', animationDirection: 'reverse' }} />
             <div className="absolute inset-6 rounded-full border border-cyan-500/30 animate-pulse" />
 
-            {/* Holographic Glowing Core */}
-            <div className={`w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full flex flex-col items-center justify-center transition-all duration-200 shadow-2xl ${
-              state === 'speaking'
-                ? 'bg-gradient-to-tr from-cyan-900 via-blue-800 to-cyan-500 scale-105 shadow-cyan-500/50 ring-4 ring-cyan-400'
-                : state === 'listening'
-                ? 'bg-gradient-to-tr from-slate-900 via-blue-950 to-slate-900 ring-2 ring-blue-400'
-                : 'bg-slate-900 ring-1 ring-cyan-500/40'
-            }`}>
-              <Bot className={`w-14 h-14 md:w-18 md:h-18 transition-colors ${
-                state === 'speaking' ? 'text-white animate-pulse' : 'text-cyan-300'
-              }`} />
+            {/* Acoustic Ripple Rings when Speaking */}
+            {state === 'speaking' && (
+              <div className="absolute inset-0 rounded-full border-2 border-cyan-400/60 animate-ping" style={{ animationDuration: '1.8s' }} />
+            )}
 
-              {/* Dynamic Soundwave Viseme Bars inside JARVIS Core */}
-              {state === 'speaking' && (
-                <div className="flex items-center gap-1 mt-2">
-                  <span className="w-1.5 h-3 bg-cyan-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-6 bg-white rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
-                  <span className="w-1.5 h-4 bg-cyan-300 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
-                  <span className="w-1.5 h-7 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-3 bg-cyan-300 rounded-full animate-bounce" style={{ animationDelay: '250ms' }} />
-                </div>
-              )}
+            {/* Holographic Glowing Core */}
+            <div
+              className={`w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full flex flex-col items-center justify-center transition-all duration-200 shadow-2xl ${
+                state === 'speaking'
+                  ? 'bg-gradient-to-tr from-cyan-900 via-blue-800 to-cyan-500 scale-105 shadow-cyan-500/50 ring-4 ring-cyan-400'
+                  : state === 'listening'
+                  ? 'bg-gradient-to-tr from-slate-900 via-blue-950 to-slate-900 ring-2 ring-blue-400'
+                  : 'bg-slate-900 ring-1 ring-cyan-500/40'
+              }`}
+            >
+              <Bot
+                className={`w-14 h-14 md:w-18 md:h-18 transition-colors ${
+                  state === 'speaking' ? 'text-white animate-pulse' : 'text-cyan-300'
+                }`}
+              />
             </div>
           </div>
         </div>
       )}
 
       {/* ===================================================================
+       * DYNAMIC SOUND VIBRATION ANIMATION CAPSULE
+       * Replaces the lipsyncing overlay with an elegant, responsive soundwave visualizer
+       * =================================================================== */}
+      <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center justify-center transition-all duration-200">
+        {state === 'speaking' ? (
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-950/85 backdrop-blur-md border border-emerald-500/60 shadow-xl shadow-emerald-500/25 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px] font-bold tracking-wider uppercase">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span>Voice</span>
+            </div>
+
+            {/* 16-Band Dynamic Sound Vibration Frequency Bars */}
+            <div className="flex items-center gap-[3px] h-6 px-1">
+              {soundVibrationBands.map((amp, idx) => (
+                <span
+                  key={idx}
+                  className="w-[3px] rounded-full bg-gradient-to-t from-emerald-500 via-teal-300 to-cyan-300 shadow-sm shadow-emerald-400/40"
+                  style={{
+                    height: `${Math.max(4, amp * 24)}px`,
+                    transition: 'height 0.05s ease-out'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : state === 'listening' ? (
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-blue-500/40 shadow-lg shadow-blue-500/15 animate-in fade-in duration-200">
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+            <Mic className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+            <span className="text-[11px] font-medium text-blue-300 tracking-wide">Listening to you…</span>
+            <div className="flex items-center gap-[2.5px] h-3 ml-1">
+              <span className="w-1 h-2 bg-blue-400/80 rounded-full animate-pulse" />
+              <span className="w-1 h-3.5 bg-blue-300 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+              <span className="w-1 h-2 bg-blue-400/80 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        ) : state === 'evaluating' ? (
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-amber-500/40 shadow-lg shadow-amber-500/15 animate-in fade-in duration-200">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+            <span className="text-[11px] font-medium text-amber-300 tracking-wide">Analyzing response rubric…</span>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ===================================================================
        * Bottom Interviewer Identification Tag
        * =================================================================== */}
       <div className="absolute bottom-3 left-4 z-30 flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800/80 shadow-lg">
-        <span className={`w-2.5 h-2.5 rounded-full ${
-          state === 'speaking'
-            ? 'bg-emerald-400 animate-ping'
-            : state === 'listening'
-            ? 'bg-blue-400 animate-pulse'
-            : state === 'evaluating'
-            ? 'bg-amber-400 animate-spin'
-            : 'bg-slate-400'
-        }`} />
+        <span
+          className={`w-2.5 h-2.5 rounded-full ${
+            state === 'speaking'
+              ? 'bg-emerald-400 animate-ping'
+              : state === 'listening'
+              ? 'bg-blue-400 animate-pulse'
+              : state === 'evaluating'
+              ? 'bg-amber-400 animate-spin'
+              : 'bg-slate-400'
+          }`}
+        />
         <div>
           <h4 className="font-bold text-xs text-white leading-tight">
             {selectedPersona === 'sarah'
