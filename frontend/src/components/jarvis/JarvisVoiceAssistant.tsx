@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Mic,
   MicOff,
@@ -18,7 +18,9 @@ import {
   RefreshCw,
   Share2,
   Inbox,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  Radio
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -42,8 +44,15 @@ interface JarvisMessage {
 export const JarvisVoiceAssistant: React.FC = () => {
   const { studentProfile } = useApp();
 
-  // Floating & Modal State
-  const [isOpen, setIsOpen] = useState<boolean>(false);
+  // Floating & Modal State — Auto-Turn On enabled by default
+  const [autoTurnOn, setAutoTurnOn] = useState<boolean>(() => {
+    const stored = localStorage.getItem('jarvis_auto_open');
+    return stored === null ? true : stored === 'true';
+  });
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
+    const stored = localStorage.getItem('jarvis_auto_open');
+    return stored === null ? true : stored === 'true';
+  });
   const [activeTab, setActiveTab] = useState<'voice' | 'linkedin' | 'mail' | 'system'>('voice');
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
 
@@ -54,6 +63,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
   const [voiceVolumeEnabled, setVoiceVolumeEnabled] = useState<boolean>(true);
   const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [wakeState, setWakeState] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
+  const [micPermissionDenied, setMicPermissionDenied] = useState<boolean>(false);
 
   // Chat & History
   const [query, setQuery] = useState<string>('');
@@ -96,6 +106,10 @@ export const JarvisVoiceAssistant: React.FC = () => {
 
   // Refs
   const recognitionRef = useRef<any>(null);
+  const isRecognizingRef = useRef<boolean>(false);
+  const isSpeakingRef = useRef<boolean>(false);
+  const hasGreetedRef = useRef<boolean>(false);
+  const restartTimeoutRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -137,6 +151,27 @@ export const JarvisVoiceAssistant: React.FC = () => {
     }
   };
 
+  // Safe Speech Recognition Starter
+  const startRecognitionSafe = useCallback(() => {
+    if (!recognitionRef.current || isRecognizingRef.current || isSpeakingRef.current) return;
+    try {
+      recognitionRef.current.start();
+      isRecognizingRef.current = true;
+      setIsListening(true);
+      setMicPermissionDenied(false);
+    } catch (err: any) {
+      if (err.name === 'InvalidStateError') {
+        isRecognizingRef.current = true;
+        setIsListening(true);
+      } else if (err.error === 'not-allowed' || err.name === 'NotAllowedError') {
+        setMicPermissionDenied(true);
+        setIsListening(false);
+      } else {
+        console.warn('Speech recognition start note:', err);
+      }
+    }
+  }, []);
+
   // -------------------------------------------------------------------------
   // Speech Synthesis (Jarvis Voice)
   // -------------------------------------------------------------------------
@@ -157,13 +192,38 @@ export const JarvisVoiceAssistant: React.FC = () => {
 
       if (preferred) utterance.voice = preferred;
 
-      utterance.onstart = () => setWakeState('speaking');
-      utterance.onend = () => setWakeState('idle');
-      utterance.onerror = () => setWakeState('idle');
+      utterance.onstart = () => {
+        isSpeakingRef.current = true;
+        setWakeState('speaking');
+        // Pause recognition temporarily while speaking to avoid self-triggering
+        if (recognitionRef.current && isRecognizingRef.current) {
+          try {
+            recognitionRef.current.abort();
+            isRecognizingRef.current = false;
+          } catch (_) {}
+        }
+      };
+
+      utterance.onend = () => {
+        isSpeakingRef.current = false;
+        setWakeState('idle');
+        if (isWakeWordArmed) {
+          setTimeout(() => startRecognitionSafe(), 250);
+        }
+      };
+
+      utterance.onerror = () => {
+        isSpeakingRef.current = false;
+        setWakeState('idle');
+        if (isWakeWordArmed) {
+          setTimeout(() => startRecognitionSafe(), 250);
+        }
+      };
 
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.warn('Speech synthesis error:', e);
+      isSpeakingRef.current = false;
       setWakeState('idle');
     }
   };
@@ -192,23 +252,37 @@ export const JarvisVoiceAssistant: React.FC = () => {
             handleSpokenFinal(transcript);
           } else {
             currentInterim += transcript;
+            // Real-time instantaneous wake word detection from interim audio stream
+            const isWakeDetected = /\b(jarvis|hey jarvis|hello jarvis|ok jarvis)\b/i.test(currentInterim);
+            if (isWakeDetected && !isOpen) {
+              playWakeChime();
+              setIsOpen(true);
+              setWakeState('listening');
+              speakJarvis('Jarvis online, Sir. Listening.');
+            }
           }
         }
         setInterimTranscript(currentInterim);
       };
 
       recognition.onerror = (event: any) => {
-        if (event.error !== 'no-speech') {
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setMicPermissionDenied(true);
+          setIsListening(false);
+          isRecognizingRef.current = false;
+        } else if (event.error !== 'no-speech') {
           console.warn('Speech recognition status:', event.error);
         }
       };
 
       recognition.onend = () => {
-        // Automatically restart if wake word is armed
-        if (isWakeWordArmed) {
-          try {
-            recognition.start();
-          } catch (_) {}
+        isRecognizingRef.current = false;
+        if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+        // Automatically restart after 250ms delay if wake word is armed and not speaking
+        if (isWakeWordArmed && !isSpeakingRef.current) {
+          restartTimeoutRef.current = setTimeout(() => {
+            startRecognitionSafe();
+          }, 250);
         } else {
           setIsListening(false);
         }
@@ -216,10 +290,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
 
       recognitionRef.current = recognition;
       if (isWakeWordArmed) {
-        try {
-          recognition.start();
-          setIsListening(true);
-        } catch (_) {}
+        startRecognitionSafe();
       }
     } catch (err) {
       console.warn('Speech recognition init error:', err);
@@ -227,23 +298,65 @@ export const JarvisVoiceAssistant: React.FC = () => {
     }
 
     return () => {
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
+          isRecognizingRef.current = false;
         } catch (_) {}
       }
     };
-  }, [isWakeWordArmed]);
+  }, [isWakeWordArmed, startRecognitionSafe]);
+
+  // Auto-Start voice listener and optional greeting on first user interaction anywhere on page
+  useEffect(() => {
+    const handleFirstGesture = () => {
+      startRecognitionSafe();
+      if (autoTurnOn && !hasGreetedRef.current) {
+        hasGreetedRef.current = true;
+        playWakeChime();
+        speakJarvis('Good day, Sir. JARVIS online and primed.');
+      }
+    };
+
+    window.addEventListener('pointerdown', handleFirstGesture, { once: true });
+    window.addEventListener('keydown', handleFirstGesture, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', handleFirstGesture);
+      window.removeEventListener('keydown', handleFirstGesture);
+    };
+  }, [startRecognitionSafe, autoTurnOn]);
+
+  // Global Keyboard Shortcut: Ctrl + Space or Alt + J toggles Jarvis
+  useEffect(() => {
+    const handleKeyShortcut = (e: KeyboardEvent) => {
+      if ((e.altKey && e.key.toLowerCase() === 'j') || (e.ctrlKey && e.code === 'Space')) {
+        e.preventDefault();
+        playWakeChime();
+        setIsOpen(prev => {
+          const next = !prev;
+          if (next) {
+            startRecognitionSafe();
+            speakJarvis('At your command, Sir.');
+          }
+          return next;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyShortcut);
+    return () => window.removeEventListener('keydown', handleKeyShortcut);
+  }, [startRecognitionSafe]);
 
   useEffect(() => {
     const handleOpen = () => {
       playWakeChime();
       setIsOpen(true);
+      startRecognitionSafe();
       speakJarvis('Jarvis online, Sir. How may I assist you?');
     };
     window.addEventListener('open-jarvis', handleOpen);
     return () => window.removeEventListener('open-jarvis', handleOpen);
-  }, []);
+  }, [startRecognitionSafe]);
 
   const handleSpokenFinal = (text: string) => {
     setInterimTranscript('');
@@ -251,7 +364,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
     if (!clean) return;
 
     // Wake-word pattern check
-    const isWakeDetected = /\b(jarvis|hey jarvis|hello jarvis|ok jarvis)\b/i.test(clean);
+    const isWakeDetected = /\b(jarvis|hey jarvis|hello jarvis|ok jarvis|listen jarvis)\b/i.test(clean);
 
     if (isWakeDetected) {
       playWakeChime();
@@ -259,7 +372,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
       setWakeState('listening');
 
       // Strip out the wake word to isolate the command if provided together
-      const stripped = clean.replace(/\b(hey jarvis|hello jarvis|ok jarvis|jarvis)\b/gi, '').trim();
+      const stripped = clean.replace(/\b(hey jarvis|hello jarvis|ok jarvis|jarvis|listen jarvis)\b/gi, '').trim();
 
       if (stripped.length > 2) {
         // Direct command chained: e.g. "Jarvis, draft a LinkedIn post"
@@ -610,11 +723,25 @@ export const JarvisVoiceAssistant: React.FC = () => {
        * 1. Floating Holographic Arc-Reactor Orb (Always Present Bottom-Right)
        * =================================================================== */}
       <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 select-none no-print">
-        {/* Wake-Word Badge Notification */}
-        {isWakeWordArmed && !isOpen && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 text-cyan-300 border border-cyan-500/40 text-xs shadow-lg backdrop-blur-md animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span className="font-semibold tracking-wide">Say "Jarvis" to Wake</span>
+        {/* Wake-Word Badge Notification & Mic Arming Indicator */}
+        {!isOpen && (
+          <div
+            onClick={() => {
+              playWakeChime();
+              setIsOpen(true);
+              startRecognitionSafe();
+              speakJarvis('Jarvis online, Sir.');
+            }}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/95 text-cyan-300 border border-cyan-500/50 text-xs shadow-xl backdrop-blur-md cursor-pointer hover:border-cyan-300 hover:scale-105 transition-all animate-pulse"
+          >
+            <span className={`w-2 h-2 rounded-full ${isListening ? 'bg-cyan-400 animate-ping' : 'bg-amber-400'}`} />
+            <span className="font-semibold tracking-wide">
+              {micPermissionDenied
+                ? '🎙️ Tap to Grant Mic & Auto-Wake'
+                : isListening
+                ? '⚡ Auto-Wake Active: Say "Jarvis"'
+                : '🎙️ Tap to Arm Voice & Auto-Turn On'}
+            </span>
           </div>
         )}
 
@@ -623,6 +750,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
           onClick={() => {
             playWakeChime();
             setIsOpen(!isOpen);
+            startRecognitionSafe();
             if (!isOpen) {
               speakJarvis('Jarvis online, Sir.');
             }
@@ -632,7 +760,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
               ? 'bg-gradient-to-tr from-cyan-600 to-blue-700 ring-4 ring-cyan-400/50 scale-105'
               : 'bg-gradient-to-tr from-slate-900 via-slate-800 to-cyan-950 border border-cyan-500/40 hover:scale-110 hover:shadow-cyan-500/30'
           }`}
-          title="JARVIS AI Voice & Executive Agent"
+          title="JARVIS AI Voice & Executive Agent (Press Ctrl+Space or say 'Jarvis')"
           aria-label="Toggle Jarvis"
         >
           {/* Animated Glowing Rings */}
@@ -692,6 +820,25 @@ export const JarvisVoiceAssistant: React.FC = () => {
 
               {/* Controls */}
               <div className="flex items-center gap-1.5">
+                {/* Auto-Turn On Toggle Button */}
+                <button
+                  onClick={() => {
+                    const next = !autoTurnOn;
+                    setAutoTurnOn(next);
+                    localStorage.setItem('jarvis_auto_open', String(next));
+                  }}
+                  className={`px-2 py-1 rounded-lg border text-[10px] font-mono flex items-center gap-1 transition-all ${
+                    autoTurnOn
+                      ? 'border-cyan-500/60 bg-cyan-950/60 text-cyan-300 shadow-sm shadow-cyan-500/20'
+                      : 'border-slate-800 bg-slate-900 text-slate-500 hover:text-slate-300'
+                  }`}
+                  title={autoTurnOn ? 'Auto-Turn On Enabled: Jarvis automatically wakes and opens on launch' : 'Auto-Turn On Disabled: Click to enable auto-turn on'}
+                >
+                  <Zap className={`w-3 h-3 ${autoTurnOn ? 'text-amber-400 fill-amber-400' : 'text-slate-500'}`} />
+                  <span className="hidden sm:inline">Auto-Turn On:</span>
+                  <span className={autoTurnOn ? 'text-cyan-300 font-bold' : 'text-slate-400'}>{autoTurnOn ? 'ON' : 'OFF'}</span>
+                </button>
+
                 <button
                   onClick={() => setVoiceVolumeEnabled(!voiceVolumeEnabled)}
                   className={`p-1.5 rounded-lg border text-xs transition-colors ${
