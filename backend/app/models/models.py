@@ -41,6 +41,7 @@ class Student(Base):
     applications = relationship("Application", back_populates="student", cascade="all, delete-orphan")
     assessment_results = relationship("AssessmentResult", back_populates="student", cascade="all, delete-orphan")
     interview_sessions = relationship("InterviewSession", back_populates="student", cascade="all, delete-orphan")
+    saved_opportunities = relationship("SavedOpportunityRecord", back_populates="student", cascade="all, delete-orphan")
 
 class Project(Base):
     __tablename__ = "projects"
@@ -387,3 +388,112 @@ class InterviewVisionMetric(Base):
     notes = Column(String, default="Camera positioning indicator only; not factored into candidate interview score.")
 
     session = relationship("InterviewSession", back_populates="vision_metrics")
+
+
+# =========================================================
+# Integration Center Models
+# =========================================================
+
+class IntegrationConnection(Base):
+    __tablename__ = "integration_connections"
+
+    id = Column(String(50), primary_key=True, index=True) # e.g. "github", "google_workspace", "vercel", "cloudflare", "supabase"
+    provider = Column(String(50), nullable=False)
+    status = Column(String(30), default="Not connected") # "Not connected", "Connecting", "Connected", "Expired", "Degraded", "Error"
+    account_id = Column(String(100), nullable=True)
+    account_name = Column(String(150), nullable=True)
+    account_avatar = Column(String(300), nullable=True)
+    repository = Column(String(150), nullable=True)
+    scopes = Column(JSON, default=list)
+    encrypted_token = Column(Text, nullable=True) # Stored securely; never exposed in API outputs or logs
+    last_verified_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)
+    rate_limit_info = Column(JSON, default=dict)
+    metadata_json = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+# =========================================================
+# Opportunities Intelligence Models
+# =========================================================
+
+class OpportunityRecord(Base):
+    """
+    Normalized opportunity entity across all providers.
+    Supports jobs, internships, hackathons, competitions, scholarships, fellowships, and programmes.
+    Maintains strict provenance, verification timestamps, and deduplication hashes.
+    """
+    __tablename__ = "opportunities"
+
+    id = Column(String(60), primary_key=True, index=True) # e.g. "opp_gh_001", "opp_devpost_123"
+    source_id = Column(String(100), nullable=True, index=True)
+    provider = Column(String(50), nullable=False, index=True) # "linkedin", "unstop", "devpost", "mlh", "wellfound", "naukri", "company_career", "university"
+    provenance_type = Column(String(30), nullable=False) # "api_verified", "official_feed", "link_discovery", "manual_import"
+    title = Column(String(255), nullable=False, index=True)
+    company_or_organizer = Column(String(255), nullable=False, index=True)
+    category = Column(String(50), nullable=False, index=True) # "job", "internship", "hackathon", "competition", "scholarship", "fellowship", "programme"
+    source_url = Column(Text, nullable=False)
+    application_url = Column(Text, nullable=False)
+    location = Column(String(150), default="Remote")
+    remote_status = Column(String(30), default="remote") # "remote", "hybrid", "on_site"
+    compensation_type = Column(String(30), default="unknown") # "paid", "unpaid", "stipend", "prize", "unknown"
+    compensation_amount = Column(String(150), nullable=True)
+    eligibility = Column(JSON, default=dict) # criteria dict (cgpa, degree, batch, etc.)
+    experience_requirements = Column(String(150), nullable=True) # "Entry Level", "0-1 years", "Students"
+    skills = Column(JSON, default=list) # normalized required/recommended skills
+    deadline = Column(String(100), nullable=True) # ISO string or published date string
+    deadline_timezone = Column(String(50), default="IST")
+    status = Column(String(30), default="open", index=True) # "open", "closing_soon", "closed", "unknown"
+    is_stale = Column(Boolean, default=False)
+    last_verified_at = Column(DateTime, nullable=True)
+    retrieved_at = Column(DateTime, default=datetime.datetime.utcnow)
+    description = Column(Text, nullable=False)
+    canonical_url_hash = Column(String(64), index=True, nullable=False) # SHA256 of normalized URL
+    raw_metadata = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    saved_entries = relationship("SavedOpportunityRecord", back_populates="opportunity", cascade="all, delete-orphan")
+
+
+class SavedOpportunityRecord(Base):
+    """
+    User-saved opportunity tracking with pipeline application status and configurable reminders.
+    """
+    __tablename__ = "saved_opportunities"
+
+    id = Column(String(60), primary_key=True, index=True) # "sopp_..."
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, index=True)
+    opportunity_id = Column(String(60), ForeignKey("opportunities.id"), nullable=False, index=True)
+    application_status = Column(String(30), default="saved", index=True) # "saved", "applied", "interviewing", "offered", "rejected", "archived"
+    reminder_enabled = Column(Boolean, default=True)
+    reminder_frequency = Column(String(30), default="3_days_before") # "daily", "3_days_before", "1_day_before"
+    notes = Column(Text, nullable=True)
+    applied_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    opportunity = relationship("OpportunityRecord", back_populates="saved_entries")
+    student = relationship("Student", back_populates="saved_opportunities")
+
+
+class OpportunityUserPreference(Base):
+    """
+    Explicit user preferences for opportunity discovery.
+    Never fabricated or assumed without user configuration.
+    """
+    __tablename__ = "opportunity_user_preferences"
+
+    id = Column(String(60), primary_key=True, index=True)
+    student_id = Column(String, ForeignKey("students.id"), nullable=False, unique=True, index=True)
+    preferred_roles = Column(JSON, default=list)
+    preferred_categories = Column(JSON, default=list)
+    preferred_locations = Column(JSON, default=list)
+    remote_only = Column(Boolean, default=False)
+    min_compensation = Column(String(100), nullable=True)
+    subscribed_providers = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+

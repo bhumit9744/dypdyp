@@ -1,6 +1,6 @@
 export type Role = 'student' | 'coordinator';
 
-export type NavSection = 'dashboard' | 'career' | 'resume' | 'explore' | 'placements' | 'arena';
+export type NavSection = 'dashboard' | 'career' | 'resume' | 'explore' | 'opportunities' | 'placements' | 'arena' | 'integrations';
 
 export type CareerSubSection = 'profile' | 'skills' | 'resume' | 'assessments' | 'career-prep' | 'interview-studio';
 
@@ -554,4 +554,163 @@ export interface InterviewSession {
   ended_at?: string;
   turns: InterviewTurn[];
   vision_summary?: VisionSummary;
+}
+
+export type IntegrationStatusType = 'Not connected' | 'Connecting' | 'Connected' | 'Expired' | 'Degraded' | 'Error';
+
+export interface IntegrationProviderCard {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  capabilities: string[];
+  docs_url: string;
+  is_read_only: boolean;
+  setup_guide?: string;
+  status: IntegrationStatusType;
+  account_name?: string | null;
+  account_avatar?: string | null;
+  repository?: string | null;
+  scopes?: string[];
+  last_verified_at?: string | null;
+  last_error?: string | null;
+  rate_limit_info?: {
+    limit?: number;
+    remaining?: number;
+    reset_datetime?: string;
+    reset_timestamp?: number;
+    used?: number;
+    resource?: string;
+  };
+}
+
+export interface GitHubCommitItem {
+  sha: string;
+  short_sha: string;
+  message: string;
+  full_message?: string;
+  author_name: string;
+  author_avatar?: string;
+  date: string;
+  html_url: string;
+}
+
+export interface GitHubIssueItem {
+  id: number;
+  number: number;
+  title: string;
+  state: string;
+  is_pr: boolean;
+  type: string;
+  author_name: string;
+  author_avatar?: string;
+  comments_count: number;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+}
+
+export interface GitHubWorkflowItem {
+  id: number;
+  name: string;
+  head_branch: string;
+  head_sha?: string;
+  event: string;
+  status: string;
+  conclusion?: string | null;
+  html_url: string;
+  created_at: string;
+  updated_at?: string;
+  run_number: number;
+}
+
+export interface GitHubDataResponse {
+  repository: {
+    name: string;
+    full_name: string;
+    description: string;
+    html_url: string;
+    default_branch: string;
+    is_private: boolean;
+    stars_count: number;
+    forks_count: number;
+    open_issues_count: number;
+    language?: string;
+    updated_at: string;
+    rate_limit?: Record<string, any>;
+  };
+  commits: GitHubCommitItem[];
+  issues: GitHubIssueItem[];
+  workflows: GitHubWorkflowItem[];
+  retrieved_at: string;
+  rate_limit?: Record<string, any>;
+}
+
+export interface OpportunityItem {
+  id: string;
+  source_id?: string;
+  provider: string;
+  provenance_type: 'api_verified' | 'official_feed' | 'link_discovery' | 'manual_import';
+  title: string;
+  company_or_organizer: string;
+  category: 'job' | 'internship' | 'hackathon' | 'competition' | 'scholarship' | 'fellowship' | 'programme';
+  source_url: string;
+  application_url: string;
+  location: string;
+  remote_status: 'remote' | 'hybrid' | 'on_site';
+  compensation_type: 'paid' | 'unpaid' | 'stipend' | 'prize' | 'unknown';
+  compensation_amount?: string;
+  eligibility: Record<string, any>;
+  experience_requirements?: string;
+  skills: string[];
+  deadline?: string;
+  deadline_timezone: string;
+  status: 'open' | 'closing_soon' | 'closed' | 'unknown';
+  is_stale: boolean;
+  last_verified_at?: string;
+  retrieved_at?: string;
+  description: string;
+  canonical_url_hash?: string;
+  raw_metadata?: Record<string, any>;
+}
+
+export interface SavedOpportunityItem {
+  id: string;
+  student_id: string;
+  opportunity_id: string;
+  application_status: 'saved' | 'applied' | 'interviewing' | 'offered' | 'rejected' | 'archived';
+  reminder_enabled: boolean;
+  reminder_frequency: 'daily' | '3_days_before' | '1_day_before';
+  notes?: string;
+  applied_at?: string;
+  created_at: string;
+  opportunity?: OpportunityItem;
+}
+
+export interface OpportunityMatchEvaluation {
+  opportunity_id: string;
+  match_percentage: number;
+  match_level: 'High Match' | 'Moderate Match' | 'Low Match';
+  why_it_matches: string[];
+  matched_skills: string[];
+  skill_gaps: string[];
+  cgpa_eligible?: boolean | null;
+  department_eligible?: boolean | null;
+  advisory_notice: string;
+}
+
+export interface ProviderAuditReport {
+  name: string;
+  slug: string;
+  category: string;
+  official_api_available: boolean;
+  provenance_type: string;
+  auth_and_approval_requirements: string;
+  terms_and_permitted_use: string;
+  rate_limits_and_attribution: string;
+  retrievable_fields: string[];
+  incremental_updates_and_webhooks: boolean;
+  search_url_template?: string;
+  disclaimer: string;
 }

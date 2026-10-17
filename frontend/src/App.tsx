@@ -33,6 +33,12 @@ import { InterviewsSubSection } from './pages/placements/InterviewsSubSection';
 // Tech Arena / Games
 import { TechArenaPage } from './pages/arena/TechArenaPage';
 
+// Integration Center
+import { IntegrationCenterPage } from './pages/integrations/IntegrationCenterPage';
+
+// Opportunities Intelligence
+import { OpportunitiesPage } from './pages/opportunities/OpportunitiesPage';
+
 export const AppContent: React.FC = () => {
   const { currentSection, currentSubSection } = useApp();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -41,6 +47,12 @@ export const AppContent: React.FC = () => {
     switch (currentSection) {
       case 'dashboard':
         return <DashboardPage />;
+
+      case 'integrations':
+        return <IntegrationCenterPage />;
+
+      case 'opportunities':
+        return <OpportunitiesPage />;
 
       case 'resume':
         return <ResumeSubSection />;
@@ -106,6 +118,7 @@ export const AppContent: React.FC = () => {
   const getSectionTitle = () => {
     switch (currentSection) {
       case 'dashboard': return 'Dashboard';
+      case 'integrations': return 'Integrations';
       case 'career': return 'My Career';
       case 'explore': return 'Explore';
       case 'placements': return 'Placements';

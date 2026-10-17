@@ -7,6 +7,8 @@ from .api.endpoints import router as api_router
 from .api.interview_endpoints import router as interview_router
 from .api.resume_endpoints import router as resume_router
 from .api.jarvis_endpoints import router as jarvis_router
+from .api.integration_endpoints import router as integration_router
+from .api.opportunity_endpoints import router as opportunity_router
 
 # Initialize database tables and columns
 init_db_schema()
@@ -30,6 +32,8 @@ app.include_router(api_router, prefix="/api/v1")
 app.include_router(interview_router, prefix="/api/v1")
 app.include_router(resume_router, prefix="/api/v1")
 app.include_router(jarvis_router, prefix="/api/v1")
+app.include_router(integration_router, prefix="/api/v1")
+app.include_router(opportunity_router, prefix="/api/v1")
 
 @app.get("/")
 def root():

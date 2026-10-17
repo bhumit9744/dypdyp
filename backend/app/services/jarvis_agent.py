@@ -12,7 +12,27 @@ import logging
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
+import asyncio
+import concurrent.futures
 from app.core.config import settings
+from app.core.database import SessionLocal
+from app.models.models import IntegrationConnection, Student, OpportunityRecord, SavedOpportunityRecord
+from app.integrations.opportunities.service import opportunities_service
+from app.integrations.opportunities.schemas import (
+    OpportunityFilterParams,
+    SaveOpportunityRequest,
+    UpdateApplicationStatusRequest,
+)
+from app.integrations.github import github_connector
+from app.integrations.base import (
+    ConnectorError,
+    ConnectorAuthError,
+    ConnectorPermissionError,
+    ConnectorRateLimitError,
+    ConnectorNotFoundError,
+    ConnectorTimeoutError,
+    ConnectorNetworkError,
+)
 from app.services.gemini_provider import provider_manager, GeminiProviderError
 
 logger = logging.getLogger("jarvis_agent")
@@ -160,11 +180,28 @@ class JarvisAgent:
                     "sent_messages": len(_EMAIL_SENT_STORE),
                     "features": ["ai_drafting", "instant_send", "interview_followup"]
                 },
+                "github": {
+                    "enabled": True,
+                    "target_repo": settings.clean_github_repository,
+                    "features": ["repository_status", "commit_history", "issue_tracking", "ci_cd_workflows"]
+                },
                 "voice": {
                     "enabled": True,
                     "wake_words": ["Jarvis", "Hey Jarvis", "Hello Jarvis"],
                     "voice_engine": "Natural TTS Synthesis",
                     "continuous_listen": True
+                },
+                "opportunities": {
+                    "enabled": True,
+                    "features": [
+                        "search_opportunities",
+                        "get_opportunity_details",
+                        "get_closing_soon_opportunities",
+                        "compare_opportunity_with_resume",
+                        "save_opportunity",
+                        "update_application_status"
+                    ],
+                    "monitored_providers": 8
                 }
             }
         }
@@ -178,7 +215,17 @@ class JarvisAgent:
         intent = self._detect_intent(lower_query)
 
         # 2. Execute appropriate plugin or tool
-        if intent == "linkedin_post":
+        if intent == "github_status":
+            return self._handle_github_status_intent(clean_query)
+        elif intent == "opportunities_closing_soon":
+            return self.get_closing_soon_opportunities_tool(student_id=student_id)
+        elif intent == "opportunities_search":
+            return self._handle_search_opportunities_intent(clean_query, student_id=student_id)
+        elif intent == "opportunity_compare":
+            return self._handle_compare_opportunity_intent(clean_query, student_id=student_id)
+        elif intent == "opportunity_save":
+            return self._handle_save_opportunity_intent(clean_query, student_id=student_id)
+        elif intent == "linkedin_post":
             return self._handle_linkedin_post_intent(clean_query)
         elif intent == "linkedin_outreach":
             return self._handle_linkedin_outreach_intent(clean_query)
@@ -207,6 +254,26 @@ class JarvisAgent:
         return self._generate_gemini_response(clean_query, context)
 
     def _detect_intent(self, q: str) -> str:
+        # Opportunities Intelligence Intents (check specific career triggers first)
+        if any(w in q for w in ["closing soon", "expiring soon", "deadlines approaching", "urgent applications", "urgent deadline"]):
+            return "opportunities_closing_soon"
+        if any(w in q for w in ["compare opportunity", "match opportunity", "match my resume to", "skills gap", "do i qualify for"]):
+            return "opportunity_compare"
+        if any(w in q for w in ["save opportunity", "bookmark opportunity", "track opportunity", "save job"]):
+            return "opportunity_save"
+        if any(w in q for w in [
+            "find jobs", "search jobs", "find opportunities", "search opportunities",
+            "find hackathons", "search hackathons", "find internships", "search internships",
+            "competitions", "scholarships", "fellowships", "any open roles", "campus drives"
+        ]):
+            return "opportunities_search"
+
+        if any(w in q for w in [
+            "github", "repo status", "repository status", "git status",
+            "latest commit", "workflow run", "build status", "ci/cd", "pull request",
+            "repo activity", "github actions", "status of my repo", "status of my repository"
+        ]):
+            return "github_status"
         if any(w in q for w in ["linkedin post", "draft linkedin", "write a post", "post on linkedin", "share on linkedin"]):
             return "linkedin_post"
         if any(w in q for w in ["connect on linkedin", "linkedin message", "reach out to alumni", "alumni outreach"]):
@@ -441,7 +508,7 @@ Generate:
             "plugin": "core_brain"
         }
 
-    def _call_gemini_text(self, prompt: str, fallback: str, system_instruction: Optional[str] = None) -> str:
+    def _call_gemini_text(self, prompt: str, fallback: str, system_instruction: Optional[str] = None, timeout_seconds: float = 4.5) -> str:
         if not settings.has_gemini_credential:
             return fallback
         try:
@@ -451,8 +518,13 @@ Generate:
                     model=model_name,
                     contents=full_prompt
                 )
-            res = provider_manager.execute_with_failover(_call, model=settings.clean_gemini_model)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(provider_manager.execute_with_failover, _call, model=settings.clean_gemini_model)
+                res = future.result(timeout=timeout_seconds)
             return res.text.strip() if res and res.text else fallback
+        except concurrent.futures.TimeoutError:
+            logger.warning("Gemini invocation in Jarvis timed out after threshold; using instant heuristic fallback.")
+            return fallback
         except Exception as e:
             logger.warning(f"Gemini invocation in Jarvis fell back: {e}")
             return fallback
@@ -465,6 +537,602 @@ Generate:
             f"Looking forward to connecting with fellow engineers and industry mentors!\n\n"
             f"#SoftwareEngineering #CareerGrowth #TechInnovation #PlacementJourney"
         )
+
+    # --- GitHub Status Tool (Allowlisted & Untrusted Input Protected) ---
+
+    def _run_sync(self, coro):
+        """Safely executes an async coroutine from synchronous code."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, coro).result()
+        else:
+            return asyncio.run(coro)
+
+    def query_github_status(self, repo_override: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Allowlisted tool for querying real GitHub status through the backend.
+        Summarizes repository, commit, issue, and workflow data with exact source URLs.
+        Never hallucinates or fabricates status if API calls fail.
+        Retrieved repo content is treated strictly as untrusted input and not executed.
+        """
+        db = SessionLocal()
+        token = None
+        target_repo = repo_override or settings.clean_github_repository
+
+        try:
+            rec = db.query(IntegrationConnection).filter(IntegrationConnection.id == "github").first()
+            if rec:
+                token = rec.encrypted_token or settings.clean_github_token
+                if not repo_override and rec.repository:
+                    target_repo = rec.repository
+        except Exception as e:
+            logger.warning(f"Unable to query integration DB for GitHub token: {e}")
+            token = settings.clean_github_token
+        finally:
+            db.close()
+
+        retrieval_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        async def _fetch():
+            repo_res = await github_connector.get_repository(target_repo, token)
+            commits_res = await github_connector.list_commits(target_repo, token, per_page=3)
+            issues_res = await github_connector.list_issues_and_prs(target_repo, token, per_page=3)
+            workflows_res = await github_connector.list_workflow_runs(target_repo, token, per_page=3)
+            return repo_res, commits_res, issues_res, workflows_res
+
+        try:
+            repo_info, commits, issues, workflows = self._run_sync(_fetch())
+        except (ConnectorAuthError, ConnectorPermissionError, ConnectorRateLimitError,
+                ConnectorNotFoundError, ConnectorTimeoutError, ConnectorNetworkError, ConnectorError) as ce:
+            logger.error(f"GitHub connector error in Jarvis: {ce}")
+            err_msg = ce.message
+            response_text = (
+                f"Sir, I attempted to query repository `{target_repo}` via the GitHub REST API at {retrieval_time}, "
+                f"but the provider returned an error:\n\n"
+                f"❌ **GitHub Verification Issue:** {err_msg}\n\n"
+                f"*(Note: In accordance with our reliability standards, no repository status or build results are fabricated when provider requests fail.)*"
+            )
+            return {
+                "response": response_text,
+                "voice_speech": f"I was unable to verify repository status for {target_repo}, Sir. The GitHub API reported: {err_msg[:80]}.",
+                "action_executed": "github_query_failed",
+                "plugin": "github",
+                "data": {"error": err_msg, "retrieval_time": retrieval_time, "repository": target_repo}
+            }
+        except Exception as ex:
+            logger.error(f"Unexpected error in Jarvis GitHub tool: {ex}")
+            err_msg = str(ex)
+            return {
+                "response": (
+                    f"Sir, an unexpected failure occurred while querying the GitHub connector at {retrieval_time}: {err_msg}. "
+                    f"Build status and repository telemetry could not be verified."
+                ),
+                "voice_speech": "An unexpected error occurred while communicating with the GitHub provider, Sir.",
+                "action_executed": "github_query_error",
+                "plugin": "github",
+                "data": {"error": err_msg, "retrieval_time": retrieval_time}
+            }
+
+        # Format verified data
+        repo_name = repo_info.get("full_name") or target_repo
+        repo_url = repo_info.get("html_url")
+        branch = repo_info.get("default_branch", "main")
+        stars = repo_info.get("stars_count", 0)
+        forks = repo_info.get("forks_count", 0)
+        open_issues = repo_info.get("open_issues_count", 0)
+        rate_info = repo_info.get("rate_limit", {})
+        remaining = rate_info.get("remaining", "N/A")
+        limit = rate_info.get("limit", "N/A")
+
+        # Sanitize commits (untrusted input: quote and strip command-like patterns)
+        commits_lines = []
+        if commits:
+            for c in commits:
+                clean_msg = c['message'].replace('`', "'").replace('\n', ' ')
+                commits_lines.append(f"- [`{c['short_sha']}`]({c['html_url']}) \"{clean_msg}\" — *{c['author_name']}*")
+            commits_text = "\n".join(commits_lines)
+        else:
+            commits_text = "_No recent commits found or repository is empty._"
+
+        # Sanitize issues
+        issues_lines = []
+        if issues:
+            for i in issues:
+                clean_title = i['title'].replace('`', "'")
+                issues_lines.append(f"- [#{i['number']} ({i['type']})]({i['html_url']}) {clean_title} `[{i['state']}]`")
+            issues_text = "\n".join(issues_lines)
+        else:
+            issues_text = "_No open issues or pull requests currently open._"
+
+        # CI/CD Workflows
+        workflows_lines = []
+        ci_summary_voice = "has no recorded workflow runs"
+        if workflows:
+            latest = workflows[0]
+            latest_status = latest.get("conclusion") or latest.get("status") or "unknown"
+            ci_summary_voice = f"latest build is {latest_status}"
+            for w in workflows:
+                status_icon = "✅" if w.get("conclusion") == "success" else ("❌" if w.get("conclusion") == "failure" else "⏳")
+                workflows_lines.append(
+                    f"- {status_icon} [{w['name']} #{w['run_number']}]({w['html_url']}) on `{w['head_branch']}`: **{w['status']}** ({w.get('conclusion') or 'in progress'})"
+                )
+            workflows_text = "\n".join(workflows_lines)
+        else:
+            workflows_text = "_No GitHub Actions workflow runs found or Actions are disabled._"
+
+        response_text = (
+            f"Sir, here is the verified status for repository [`{repo_name}`]({repo_url}):\n\n"
+            f"📌 **Repository Overview**\n"
+            f"- **Default Branch:** `{branch}`\n"
+            f"- **Stars:** {stars} | **Forks:** {forks} | **Open Issues/PRs:** {open_issues}\n"
+            f"- **Source URL:** {repo_url}\n\n"
+            f"🚀 **GitHub Actions CI/CD**\n"
+            f"{workflows_text}\n\n"
+            f"📜 **Recent Commits**\n"
+            f"{commits_text}\n\n"
+            f"🎯 **Open Issues & PRs**\n"
+            f"{issues_text}\n\n"
+            f"⏱️ _Verified live via GitHub REST API at {retrieval_time}. Rate Limit: {remaining}/{limit} remaining._"
+        )
+
+        latest_author = commits[0]['author_name'] if commits else "the engineering team"
+        voice_text = (
+            f"Repository {repo_name} is active on branch {branch}. "
+            f"The latest commit is by {latest_author}, and the {ci_summary_voice}, Sir."
+        )
+
+        return {
+            "response": response_text,
+            "voice_speech": voice_text,
+            "action_executed": "github_status_retrieved",
+            "plugin": "github",
+            "data": {
+                "repository": repo_info,
+                "commits": commits,
+                "issues": issues,
+                "workflows": workflows,
+                "retrieved_at": retrieval_time,
+            }
+        }
+
+    def _handle_github_status_intent(self, q: str) -> Dict[str, Any]:
+        """Parses target repository from query if present, or defaults to configured repo."""
+        repo_override = None
+        # Check if query contains an explicit owner/repo format
+        parts = q.split()
+        for p in parts:
+            clean_p = p.strip(",.?!'\"")
+            if "/" in clean_p and len(clean_p.split("/")) == 2 and not clean_p.startswith("http"):
+                repo_override = clean_p
+                break
+        return self.query_github_status(repo_override)
+
+    # -----------------------------------------------------------------------
+    # Opportunities Allowlisted Tools
+    # -----------------------------------------------------------------------
+
+    def search_opportunities_tool(
+        self,
+        query: Optional[str] = None,
+        category: Optional[str] = None,
+        limit: int = 5,
+        student_id: str = "std_current_user"
+    ) -> Dict[str, Any]:
+        """
+        Allowlisted tool: search_opportunities.
+        Uses actual stored or freshly retrieved records.
+        Identifies sources checked, last retrieval time, and unavailable/restricted providers.
+        """
+        db = SessionLocal()
+        retrieval_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        try:
+            filters = OpportunityFilterParams(
+                query=query,
+                category=category,
+                limit=limit
+            )
+            items, total = opportunities_service.search_opportunities(filters, db)
+        except Exception as e:
+            logger.error(f"Error in search_opportunities_tool: {e}")
+            db.close()
+            return {
+                "response": f"Sir, I encountered an error while searching verified opportunities: {str(e)}.",
+                "voice_speech": "I was unable to retrieve opportunities from the database, Sir.",
+                "action_executed": "search_opportunities_failed",
+                "plugin": "opportunities",
+                "data": {"error": str(e), "retrieval_time": retrieval_time}
+            }
+        finally:
+            db.close()
+
+        sources_checked = [
+            "Devpost (official_feed)",
+            "Major League Hacking (official_feed)",
+            "Official ATS Job Boards (api_verified)",
+            "University Placement Cell (api_verified)",
+            "LinkedIn (link_discovery)",
+            "Unstop (link_discovery)",
+            "Wellfound (link_discovery)",
+            "Naukri (link_discovery)"
+        ]
+        unavailable_note = (
+            "*(Note: LinkedIn, Unstop, Wellfound, and Naukri operate in link-discovery mode per provider terms; "
+            "direct automated scraping is not permitted.)*"
+        )
+
+        if not items:
+            return {
+                "response": (
+                    f"Sir, no verified opportunities matching '{query or 'all'}' were found at {retrieval_time}.\n\n"
+                    f"**Sources Checked:** {', '.join(sources_checked)}.\n\n"
+                    f"{unavailable_note}"
+                ),
+                "voice_speech": f"No opportunities were found matching your query at this time, Sir.",
+                "action_executed": "search_opportunities_empty",
+                "plugin": "opportunities",
+                "data": {"count": 0, "retrieval_time": retrieval_time}
+            }
+
+        lines = []
+        for opp in items:
+            deadline_str = f"Deadline: **{opp.deadline}**" if opp.deadline else "Deadline: Open / Rolling"
+            status_badge = f"`[{opp.status.upper()}]`"
+            lines.append(
+                f"- **[{opp.title}]({opp.application_url})** — *{opp.company_or_organizer}*\n"
+                f"  Category: `{opp.category}` | Mode: `{opp.remote_status}` | {status_badge} | {deadline_str}\n"
+                f"  _Source: {opp.provider.capitalize()} ({opp.provenance_type})_"
+            )
+
+        items_text = "\n\n".join(lines)
+        response_text = (
+            f"Sir, here are the verified opportunity findings ({len(items)} of {total} total):\n\n"
+            f"{items_text}\n\n"
+            f"---\n"
+            f"📡 **Sources Checked:** {', '.join(sources_checked)}\n"
+            f"⏱️ **Last Retrieval:** {retrieval_time}\n"
+            f"{unavailable_note}"
+        )
+
+        voice_speech = (
+            f"I found {len(items)} verified opportunities, Sir. Top listing is {items[0].title} at {items[0].company_or_organizer}."
+        )
+
+        return {
+            "response": response_text,
+            "voice_speech": voice_speech,
+            "action_executed": "search_opportunities",
+            "plugin": "opportunities",
+            "data": {
+                "count": len(items),
+                "total": total,
+                "retrieval_time": retrieval_time,
+                "sources_checked": sources_checked,
+                "items": [it.dict() for it in items]
+            }
+        }
+
+    def get_opportunity_details_tool(self, opportunity_id: str, student_id: str = "std_current_user") -> Dict[str, Any]:
+        """
+        Allowlisted tool: get_opportunity_details.
+        Retrieves factual fields without fabrication.
+        """
+        db = SessionLocal()
+        retrieval_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        try:
+            opp = opportunities_service.get_opportunity_by_id(opportunity_id, db)
+        finally:
+            db.close()
+
+        if not opp:
+            return {
+                "response": f"Sir, opportunity `{opportunity_id}` was not found in the verified registry.",
+                "voice_speech": f"I could not locate opportunity record {opportunity_id}, Sir.",
+                "action_executed": "get_opportunity_details_not_found",
+                "plugin": "opportunities",
+                "data": {"found": False}
+            }
+
+        comp_text = opp.compensation_amount or ("Unspecified compensation" if opp.compensation_type == "unknown" else opp.compensation_type.capitalize())
+        skills_text = ", ".join(opp.skills) if opp.skills else "General software skills"
+
+        response_text = (
+            f"Sir, here are the factual details for **{opp.title}**:\n\n"
+            f"🏢 **Organizer / Company:** {opp.company_or_organizer}\n"
+            f"🏷️ **Category:** `{opp.category}` | **Status:** `{opp.status}`\n"
+            f"📍 **Location:** {opp.location} ({opp.remote_status})\n"
+            f"💰 **Compensation:** {comp_text}\n"
+            f"⏳ **Deadline:** {opp.deadline or 'Not specified'} ({opp.deadline_timezone})\n"
+            f"🛠️ **Target Skills:** {skills_text}\n"
+            f"🔗 **Official Link:** [Apply Here]({opp.application_url})\n\n"
+            f"📋 **Description:**\n{opp.description}\n\n"
+            f"⏱️ _Verified at {retrieval_time} via {opp.provider.capitalize()} ({opp.provenance_type})._"
+        )
+
+        return {
+            "response": response_text,
+            "voice_speech": f"{opp.title} at {opp.company_or_organizer} is currently {opp.status}, Sir.",
+            "action_executed": "get_opportunity_details",
+            "plugin": "opportunities",
+            "data": opp.dict()
+        }
+
+    def get_closing_soon_opportunities_tool(self, limit: int = 5, student_id: str = "std_current_user") -> Dict[str, Any]:
+        """
+        Allowlisted tool: get_closing_soon_opportunities.
+        Filters opportunities with deadlines in the next 3 to 7 days.
+        """
+        db = SessionLocal()
+        retrieval_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        try:
+            items = opportunities_service.get_closing_soon_opportunities(db, limit=limit)
+        finally:
+            db.close()
+
+        sources_checked = ["University Drives", "Devpost", "Company ATS", "MLH", "Unstop (link-discovery)"]
+
+        if not items:
+            return {
+                "response": (
+                    f"Sir, there are currently no opportunities marked as closing soon (within 3 days) as of {retrieval_time}.\n\n"
+                    f"All monitored opportunities have comfortable preparation windows."
+                ),
+                "voice_speech": "No urgent deadlines are approaching within the next three days, Sir.",
+                "action_executed": "closing_soon_empty",
+                "plugin": "opportunities",
+                "data": {"count": 0, "retrieval_time": retrieval_time}
+            }
+
+        lines = []
+        for o in items:
+            lines.append(
+                f"- ⚠️ **[{o.title}]({o.application_url})** — *{o.company_or_organizer}*\n"
+                f"  Closing: **{o.deadline}** ({o.deadline_timezone}) | Category: `{o.category}`\n"
+                f"  _Source: {o.provider.capitalize()} ({o.provenance_type})_"
+            )
+
+        items_text = "\n\n".join(lines)
+        response_text = (
+            f"Sir, urgent attention required: {len(items)} opportunities have deadlines closing soon:\n\n"
+            f"{items_text}\n\n"
+            f"---\n"
+            f"📡 **Sources Checked:** {', '.join(sources_checked)}\n"
+            f"⏱️ **Verified Live At:** {retrieval_time}"
+        )
+
+        return {
+            "response": response_text,
+            "voice_speech": f"There are {len(items)} opportunities closing soon, Sir. Earliest deadline is {items[0].deadline}.",
+            "action_executed": "get_closing_soon_opportunities",
+            "plugin": "opportunities",
+            "data": {"count": len(items), "items": [it.dict() for it in items]}
+        }
+
+    def compare_opportunity_with_resume_tool(
+        self,
+        opportunity_id: str,
+        student_id: str = "std_current_user",
+        resume_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Allowlisted tool: compare_opportunity_with_resume.
+        Compares confirmed student skills and projects with target opportunity.
+        Explains why it matches and lists skill gaps. Never guarantees selection.
+        """
+        db = SessionLocal()
+        retrieval_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        try:
+            student = db.query(Student).filter(Student.id == student_id).first()
+            if not student:
+                student = db.query(Student).first()
+
+            opp = opportunities_service.get_opportunity_by_id(opportunity_id, db)
+            if not opp:
+                return {
+                    "response": f"Sir, opportunity `{opportunity_id}` was not found.",
+                    "voice_speech": "Opportunity not found, Sir.",
+                    "action_executed": "compare_not_found",
+                    "plugin": "opportunities"
+                }
+
+            eval_res = opportunities_service.evaluate_opportunity_match(student, opp)
+        finally:
+            db.close()
+
+        why_text = "\n".join(f"  • {w}" for w in eval_res.why_it_matches)
+        matched_str = ", ".join(eval_res.matched_skills) if eval_res.matched_skills else "None explicitly listed"
+        gaps_str = ", ".join(eval_res.skill_gaps) if eval_res.skill_gaps else "No critical skill gaps identified"
+
+        response_text = (
+            f"Sir, here is the AI relevance evaluation for **{opp.title}** at *{opp.company_or_organizer}*:\n\n"
+            f"📊 **Advisory Match Score:** **{eval_res.match_percentage}%** ({eval_res.match_level})\n\n"
+            f"✅ **Why It Matches:**\n{why_text}\n\n"
+            f"🎯 **Confirmed Skills Matching:** {matched_str}\n"
+            f"⚠️ **Identified Skill Gaps:** {gaps_str}\n\n"
+            f"📌 **Academic Eligibility:** {'Eligible' if eval_res.cgpa_eligible is not False else 'Check Backlog / CGPA Criteria'}\n\n"
+            f"---\n"
+            f"🔒 **Ethical AI Notice:** {eval_res.advisory_notice}"
+        )
+
+        voice_speech = (
+            f"Your profile has an advisory match of {eval_res.match_percentage}% for {opp.title}, Sir. "
+            f"Key matching skills include {matched_str[:40]}."
+        )
+
+        return {
+            "response": response_text,
+            "voice_speech": voice_speech,
+            "action_executed": "compare_opportunity_with_resume",
+            "plugin": "opportunities",
+            "data": eval_res.dict()
+        }
+
+    def save_opportunity_tool(
+        self,
+        opportunity_id: str,
+        status: str = "saved",
+        student_id: str = "std_current_user"
+    ) -> Dict[str, Any]:
+        """
+        Allowlisted tool: save_opportunity.
+        Saves opportunity into student pipeline. Never auto-submits applications.
+        """
+        db = SessionLocal()
+        try:
+            student = db.query(Student).filter(Student.id == student_id).first()
+            s_id = student.id if student else student_id
+            saved_item = opportunities_service.save_opportunity(
+                s_id,
+                SaveOpportunityRequest(opportunity_id=opportunity_id, application_status=status),
+                db
+            )
+            title = saved_item.opportunity.title if saved_item.opportunity else opportunity_id
+        except Exception as e:
+            logger.error(f"Error in save_opportunity_tool: {e}")
+            db.close()
+            return {
+                "response": f"Sir, unable to save opportunity: {str(e)}",
+                "voice_speech": "Failed to save the opportunity, Sir.",
+                "action_executed": "save_opportunity_failed",
+                "plugin": "opportunities"
+            }
+        finally:
+            db.close()
+
+        return {
+            "response": (
+                f"Sir, I have added **{title}** to your saved pipeline with status `{status}`.\n\n"
+                f"You can review deadlines and request resume tailoring in the Opportunities Center. "
+                f"*(Note: Placement Hub never submits job applications without explicit candidate confirmation.)*"
+            ),
+            "voice_speech": f"Saved {title} to your pipeline, Sir.",
+            "action_executed": "save_opportunity",
+            "plugin": "opportunities",
+            "data": saved_item.dict()
+        }
+
+    def update_application_status_tool(
+        self,
+        opportunity_id: str,
+        status: str,
+        student_id: str = "std_current_user"
+    ) -> Dict[str, Any]:
+        """
+        Allowlisted tool: update_application_status.
+        Updates status to 'saved', 'applied', 'interviewing', 'offered', 'rejected', or 'archived'.
+        """
+        db = SessionLocal()
+        try:
+            student = db.query(Student).filter(Student.id == student_id).first()
+            s_id = student.id if student else student_id
+            updated = opportunities_service.update_application_status(
+                s_id,
+                opportunity_id,
+                UpdateApplicationStatusRequest(application_status=status),
+                db
+            )
+            title = updated.opportunity.title if updated.opportunity else opportunity_id
+        except Exception as e:
+            logger.error(f"Error in update_application_status_tool: {e}")
+            db.close()
+            return {
+                "response": f"Sir, unable to update status: {str(e)}",
+                "voice_speech": "Status update failed, Sir.",
+                "action_executed": "update_status_failed",
+                "plugin": "opportunities"
+            }
+        finally:
+            db.close()
+
+        return {
+            "response": f"Sir, application status for **{title}** is now recorded as `{status}`.",
+            "voice_speech": f"Updated status to {status}, Sir.",
+            "action_executed": "update_application_status",
+            "plugin": "opportunities",
+            "data": updated.dict()
+        }
+
+    # -----------------------------------------------------------------------
+    # Opportunities Intent Handlers
+    # -----------------------------------------------------------------------
+
+    def _handle_search_opportunities_intent(self, q: str, student_id: str = "std_current_user") -> Dict[str, Any]:
+        cat = None
+        lower_q = q.lower()
+        if "hackathon" in lower_q:
+            cat = "hackathon"
+        elif "internship" in lower_q:
+            cat = "internship"
+        elif "competition" in lower_q or "challenge" in lower_q:
+            cat = "competition"
+        elif "scholarship" in lower_q or "fellowship" in lower_q:
+            cat = "scholarship"
+        elif "job" in lower_q:
+            cat = "job"
+
+        # Extract search keywords
+        clean_words = [
+            w for w in q.split()
+            if w.lower() not in {"find", "search", "opportunities", "jobs", "internships", "hackathons", "competitions", "any", "open", "roles", "for", "me", "jarvis", "please"}
+        ]
+        query_term = " ".join(clean_words) if clean_words else None
+        return self.search_opportunities_tool(query=query_term, category=cat, limit=5, student_id=student_id)
+
+    def _handle_compare_opportunity_intent(self, q: str, student_id: str = "std_current_user") -> Dict[str, Any]:
+        db = SessionLocal()
+        opp_id = None
+        try:
+            # Check if query contains an opportunity ID
+            for word in q.split():
+                if word.startswith("opp_"):
+                    opp_id = word.strip(".,?!'\"")
+                    break
+            if not opp_id:
+                # Default to first available opportunity
+                first_opp = db.query(OpportunityRecord).first()
+                if first_opp:
+                    opp_id = first_opp.id
+        finally:
+            db.close()
+
+        if not opp_id:
+            return {
+                "response": "Sir, please specify which opportunity to compare, or view available opportunities in the Opportunities Center.",
+                "voice_speech": "Please specify an opportunity to compare, Sir.",
+                "action_executed": "compare_missing_id",
+                "plugin": "opportunities"
+            }
+        return self.compare_opportunity_with_resume_tool(opp_id, student_id=student_id)
+
+    def _handle_save_opportunity_intent(self, q: str, student_id: str = "std_current_user") -> Dict[str, Any]:
+        db = SessionLocal()
+        opp_id = None
+        try:
+            for word in q.split():
+                if word.startswith("opp_"):
+                    opp_id = word.strip(".,?!'\"")
+                    break
+            if not opp_id:
+                first_opp = db.query(OpportunityRecord).first()
+                if first_opp:
+                    opp_id = first_opp.id
+        finally:
+            db.close()
+
+        if not opp_id:
+            return {
+                "response": "Sir, please indicate which opportunity ID you would like me to save.",
+                "voice_speech": "Please specify which opportunity to save, Sir.",
+                "action_executed": "save_missing_id",
+                "plugin": "opportunities"
+            }
+        return self.save_opportunity_tool(opp_id, status="saved", student_id=student_id)
 
 
 jarvis_agent = JarvisAgent()

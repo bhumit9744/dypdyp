@@ -35,7 +35,10 @@ class Settings(BaseSettings):
     OPENJARVIS_BASE_URL: str = "http://127.0.0.1:8008"
     OPENJARVIS_API_KEY: str = "jarvis_local_interview_token_987"
     OPENJARVIS_MODEL: str = "openjarvis-interview-model"
-    
+    # Integration Center Providers (Read-only, credential-sanitized)
+    GITHUB_TOKEN: Optional[str] = None
+    GITHUB_REPOSITORY: str = "bhumit9744/dypdyp"
+
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
@@ -158,6 +161,18 @@ class Settings(BaseSettings):
         parsed = urlparse(self.effective_base_url)
         prefix = parsed.path.rstrip('/')
         return f"{prefix}/v1/messages" if prefix else "/v1/messages"
+
+    @property
+    def clean_github_token(self) -> str:
+        """Returns whitespace- and quote-stripped GitHub token without logging or leaking it."""
+        val = (self.GITHUB_TOKEN or "").strip().strip("'").strip('"')
+        return val
+
+    @property
+    def clean_github_repository(self) -> str:
+        """Returns normalized target GitHub repository, defaulting to 'bhumit9744/dypdyp'."""
+        val = (self.GITHUB_REPOSITORY or "bhumit9744/dypdyp").strip().strip("'").strip('"')
+        return val or "bhumit9744/dypdyp"
 
     @property
     def is_custom_provider(self) -> bool:

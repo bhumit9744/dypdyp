@@ -27,7 +27,9 @@ import {
   Sun,
   Moon,
   User,
-  X
+  X,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection } from '../../types';
@@ -137,6 +139,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       label: 'Games',
       icon: Gamepad2,
       defaultSub: 'games'
+    },
+    {
+      id: 'integrations',
+      label: 'Integrations',
+      icon: Layers,
+      defaultSub: '',
+      badge: 'Hub'
+    },
+    {
+      id: 'opportunities',
+      label: 'Opportunities',
+      icon: Sparkles,
+      defaultSub: '',
+      badge: 'Intelligence'
     }
   ];
 
