@@ -1,6 +1,9 @@
 # FLUXX — Forge Your Future
 ### The All-in-One Placement & Career Acceleration Platform
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bhumit9744/dypdyp)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bhumit9744/dypdyp&root-directory=frontend)
+
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
@@ -11,6 +14,7 @@
 
 > **"From learning to landing, all in one place."**  
 > FLUXX bridges the gap between academic preparation and industry hiring. Powered by an enterprise-grade Google Gemini AI engine, an Adobe-inspired Resume Studio, realistic AI Mock Interview simulations, gamified coding arenas, and an end-to-end placement pipeline tracker.
+
 
 ---
 
