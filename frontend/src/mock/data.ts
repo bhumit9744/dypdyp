@@ -3,7 +3,6 @@ import {
   SkillItem,
   ResumeData,
   Assessment,
-  CareerGap,
   JobOpening,
   Company,
   Startup,
@@ -212,22 +211,6 @@ export const mockAssessments: Assessment[] = [
   }
 ];
 
-export const mockCareerGaps: CareerGap[] = [
-  {
-    skill: 'Kubernetes Cluster Architecture',
-    importance: 'High',
-    gapDescription: 'Top tier product companies (Uber, Atlassian) require container orchestration comprehension for backend roles.',
-    learningResource: 'Hands-on K8s on Minikube & Service Mesh Lab',
-    estimatedWeeks: 2
-  },
-  {
-    skill: 'Distributed Caching (Redis Cluster)',
-    importance: 'Medium',
-    gapDescription: 'Cache invalidation strategies, write-through vs write-back caching benchmarks.',
-    learningResource: 'Redis University: High Availability Design',
-    estimatedWeeks: 1
-  }
-];
 
 // MODULE A: Jobs & Internships
 export const mockJobs: JobOpening[] = [

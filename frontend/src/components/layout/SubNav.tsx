@@ -3,9 +3,7 @@ import { useApp } from '../../context/AppContext';
 import {
   GraduationCap,
   ShieldCheck,
-  FileText,
   Award,
-  TrendingUp,
   Briefcase,
   Building2,
   Users,
@@ -17,7 +15,9 @@ import {
   Trophy,
   Code2,
   Gamepad2,
-  Bot
+  Bot,
+  Compass,
+  Sparkles
 } from 'lucide-react';
 import { SubSection } from '../../types';
 
@@ -47,9 +47,10 @@ export const SubNav: React.FC = () => {
   > = {
     career: [
       { id: 'profile', label: 'Profile & Academics', icon: GraduationCap },
+      { id: 'career-guidance', label: 'AI Career Guidance', icon: Sparkles },
+      { id: 'career-roadmap', label: 'AI Career Roadmap Planner', icon: Compass },
       { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, count: skills.length },
       { id: 'assessments', label: 'Assessments', icon: Award, count: 4 },
-      { id: 'career-prep', label: 'Career Prep & Gaps', icon: TrendingUp },
       { id: 'interview-studio', label: 'AI Interview Studio', icon: Bot }
     ],
     explore: [

@@ -2,7 +2,7 @@ export type Role = 'student' | 'coordinator';
 
 export type NavSection = 'dashboard' | 'career' | 'resume' | 'explore' | 'opportunities' | 'placements' | 'arena' | 'integrations';
 
-export type CareerSubSection = 'profile' | 'skills' | 'resume' | 'assessments' | 'career-prep' | 'interview-studio';
+export type CareerSubSection = 'profile' | 'career-guidance' | 'career-roadmap' | 'skills' | 'assessments' | 'interview-studio';
 
 export type ExploreSubSection =
   | 'jobs-internships'
@@ -95,13 +95,6 @@ export interface Assessment {
   difficulty: 'Easy' | 'Medium' | 'Hard';
 }
 
-export interface CareerGap {
-  skill: string;
-  importance: 'High' | 'Medium' | 'Low';
-  gapDescription: string;
-  learningResource: string;
-  estimatedWeeks: number;
-}
 
 export interface JobOpening {
   id: string;

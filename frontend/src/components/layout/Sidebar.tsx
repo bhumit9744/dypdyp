@@ -9,9 +9,7 @@ import {
   GraduationCap,
   ShieldCheck,
   CheckCircle2,
-  FileText,
   Award,
-  TrendingUp,
   Building2,
   Users,
   Clock,
@@ -95,9 +93,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       defaultSub: 'profile',
       subItems: [
         { id: 'profile', label: 'Profile & Academics', icon: GraduationCap },
+        { id: 'career-guidance', label: 'AI Career Guidance', icon: Sparkles, badge: 'Counsellor' },
+        { id: 'career-roadmap', label: 'AI Roadmap Planner', icon: Compass, badge: 'AI Plan' },
         { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, badge: `${skills.filter(s => s.verified).length || skills.length}` },
         { id: 'assessments', label: 'Assessments', icon: Award, badge: '4' },
-        { id: 'career-prep', label: 'Career Prep & Gaps', icon: TrendingUp },
         { id: 'interview-studio', label: 'AI Interview Studio', icon: Bot, badge: 'AI Live' }
       ]
     },
