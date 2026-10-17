@@ -3,6 +3,7 @@ import { useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { SubNav } from './components/layout/SubNav';
 import { Menu } from 'lucide-react';
+import { JarvisVoiceAssistant } from './components/jarvis/JarvisVoiceAssistant';
 
 // Dashboard
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -14,6 +15,7 @@ import { AssessmentsSubSection } from './pages/career/AssessmentsSubSection';
 import { InterviewStudioSubSection } from './pages/career/InterviewStudioSubSection';
 import { AICareerRoadmapPlanner } from './pages/career/AICareerRoadmapPlanner';
 import { AICareerGuidance } from './pages/career/AICareerGuidance';
+import { ResumeSubSection } from './pages/career/ResumeSubSection';
 
 // Explore Subsections (6 Modules)
 import { JobsInternshipsSubSection } from './pages/explore/JobsInternshipsSubSection';
@@ -31,9 +33,11 @@ import { InterviewsSubSection } from './pages/placements/InterviewsSubSection';
 
 // Tech Arena / Games
 import { TechArenaPage } from './pages/arena/TechArenaPage';
+// Integration Center
+import { IntegrationCenterPage } from './pages/integrations/IntegrationCenterPage';
 
-// AI Resume Studio
-import { ResumeSubSection } from './pages/career/ResumeSubSection';
+// Opportunities Intelligence
+import { OpportunitiesPage } from './pages/opportunities/OpportunitiesPage';
 
 export const AppContent: React.FC = () => {
   const { currentSection, currentSubSection } = useApp();
@@ -43,6 +47,15 @@ export const AppContent: React.FC = () => {
     switch (currentSection) {
       case 'dashboard':
         return <DashboardPage />;
+
+      case 'integrations':
+        return <IntegrationCenterPage />;
+
+      case 'opportunities':
+        return <OpportunitiesPage />;
+
+      case 'resume':
+        return <ResumeSubSection />;
 
       case 'career':
         switch (currentSubSection) {
@@ -97,9 +110,6 @@ export const AppContent: React.FC = () => {
       case 'arena':
         return <TechArenaPage />;
 
-      case 'resume':
-        return <ResumeSubSection />;
-
       default:
         return <DashboardPage />;
     }
@@ -108,6 +118,8 @@ export const AppContent: React.FC = () => {
   const getSectionTitle = () => {
     switch (currentSection) {
       case 'dashboard': return 'Dashboard';
+      case 'integrations': return 'Integrations';
+      case 'opportunities': return 'Opportunities';
       case 'career': return 'My Career';
       case 'explore': return 'Explore';
       case 'placements': return 'Placements';
@@ -159,6 +171,9 @@ export const AppContent: React.FC = () => {
           </footer>
         </main>
       </div>
+
+      {/* Global Jarvis Voice & Executive Agent (Wake-word, LinkedIn & Mail plugins) */}
+      <JarvisVoiceAssistant />
     </div>
   );
 };

@@ -28,7 +28,9 @@ import {
   Code2,
   ChevronDown,
   ChevronRight,
-  FileText
+  FileText,
+  Layers,
+  Bot
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection, SubSection } from '../../types';
@@ -50,6 +52,7 @@ interface MainNavItemDef {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   section: NavSection;
+  badge?: string;
   defaultSub?: SubSection;
   subsections?: SubItemDef[];
 }
@@ -100,6 +103,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       ]
     },
     {
+      id: 'resume',
+      label: 'ATS Resume Builder',
+      icon: FileText,
+      section: 'resume',
+      badge: '92 ATS'
+    },
+    {
       id: 'explore',
       label: 'Explore',
       icon: Compass,
@@ -113,6 +123,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
         { id: 'programs-challenges', label: 'Resources & Challenges', icon: BookOpen },
         { id: 'projects-freelance', label: 'Projects & Freelance', icon: Code2 }
       ]
+    },
+    {
+      id: 'opportunities',
+      label: 'Opportunities',
+      icon: Sparkles,
+      section: 'opportunities',
+      badge: 'Intelligence'
     },
     {
       id: 'placements',
@@ -131,14 +148,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       id: 'arena',
       label: 'Games',
       icon: Gamepad2,
-      section: 'arena',
-      defaultSub: 'games'
+      section: 'arena'
     },
     {
-      id: 'resume',
-      label: 'Resume Studio',
-      icon: FileText,
-      section: 'resume'
+      id: 'integrations',
+      label: 'Integrations',
+      icon: Layers,
+      section: 'integrations',
+      badge: 'Hub'
     }
   ];
 
@@ -175,13 +192,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen && setMobileOpen(false)}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 md:hidden animate-in fade-in"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in no-print"
         />
       )}
 
       {/* Main Clean White Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 md:sticky md:top-0 h-screen w-64 flex flex-col bg-white dark:bg-[#12141F] border-r border-slate-200/90 dark:border-slate-800 transition-transform duration-300 ease-in-out shadow-xs md:shadow-none select-none shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-50 md:sticky md:top-0 h-screen w-64 flex flex-col bg-white dark:bg-[#12141F] border-r border-slate-200/90 dark:border-slate-800 transition-transform duration-300 ease-in-out shadow-xs md:shadow-none select-none shrink-0 no-print ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -214,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
           )}
         </div>
 
-        {/* 6 Sections Navigation List */}
+        {/* Navigation List */}
         <div className="flex-1 overflow-y-auto px-3 py-1 space-y-1 scrollbar-none">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
@@ -242,22 +259,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
                     <span className="truncate">{item.label}</span>
                   </div>
 
-                  {/* Subsections Expand / Collapse Chevron */}
-                  {hasSubsections && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedSection(prev => prev === item.section ? null : item.section);
-                      }}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    {item.badge && (
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                          isMainActive
+                            ? 'bg-brand-600 text-white shadow-xs'
+                            : 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300 border border-brand-200/60'
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+
+                    {/* Subsections Expand / Collapse Chevron */}
+                    {hasSubsections && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedSection(prev => prev === item.section ? null : item.section);
+                        }}
+                        className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </button>
 
                 {/* Subsections Tree (Rendered Inside Parent Section) */}
@@ -329,6 +360,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
               <SidebarCurvedArrowDoodle className="w-8 h-9 text-slate-500" />
             </div>
           </div>
+        </div>
+
+        {/* JARVIS Voice & Executive Agent Quick Launch */}
+        <div className="px-3 pb-2 shrink-0">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-jarvis'))}
+            className="w-full p-2.5 rounded-2xl bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 border border-cyan-500/40 text-left hover:border-cyan-400 transition-all shadow-md group relative overflow-hidden"
+          >
+            <div className="flex items-center space-x-2.5 relative z-10">
+              <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-400/60 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Bot className="w-4 h-4 text-cyan-300 animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-extrabold text-cyan-300 tracking-wide">JARVIS AI</p>
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
+                    LIVE
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 truncate">Voice • LinkedIn • Mails</p>
+              </div>
+            </div>
+          </button>
         </div>
 
         {/* User Profile & Footer Section */}
@@ -426,4 +480,3 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
     </>
   );
 };
-

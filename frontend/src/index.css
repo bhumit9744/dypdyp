@@ -97,40 +97,98 @@
     margin: 0;
   }
 
+  html,
   body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Hide all app chrome, sidebars, headers, and toolbars */
-  body > *:not(#root),
-  #root > *:not(.resume-print-container),
-  header,
-  nav,
-  aside,
-  button,
-  .no-print {
-    display: none !important;
-  }
-
-  /* Reveal print canvas */
-  .resume-print-container {
-    display: block !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
     width: 210mm !important;
     min-height: 297mm !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app chrome, navigation, headers, sidebars, buttons, and floating widgets */
+  .no-print,
+  header,
+  aside,
+  nav,
+  button,
+  .fixed,
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  /* Unconstrain all layout wrappers so they do not clip or hide child elements */
+  #root,
+  #root > div,
+  main,
+  .flex-1,
+  .overflow-hidden,
+  .overflow-auto,
+  .overflow-y-auto {
+    display: block !important;
+    overflow: visible !important;
+    position: static !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    transform: none !important;
+  }
+
+  /* Reset zoom container to 100% natural A4 document scale */
+  .resume-zoom-wrapper,
+  div:has(> .resume-print-container) {
+    transform: none !important;
+    width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Perfect A4 Document Print Canvas */
+  .resume-print-container,
+  #resume-print-canvas {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
     background: #ffffff !important;
+    color: #000000 !important;
     overflow: visible !important;
+    transform: none !important;
+    page-break-after: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Seamless text printing for editable input/textarea fields */
+  .resume-print-container input,
+  .resume-print-container textarea {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    outline: none !important;
+    resize: none !important;
+    color: #000000 !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
   }
 
   .resume-page-break {

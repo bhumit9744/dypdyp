@@ -53,6 +53,33 @@ def init_db_schema():
                 if col_name not in existing_app_cols:
                     cur.execute(f"ALTER TABLE applications ADD COLUMN {col_name} {col_type}")
 
+            # Integration connections table check
+            cur.execute("PRAGMA table_info(integration_connections)")
+            existing_int_cols = {r[1] for r in cur.fetchall()}
+            if existing_int_cols:
+                int_cols_to_add = [
+                    ("scopes", "TEXT DEFAULT '[]'"),
+                    ("rate_limit_info", "TEXT DEFAULT '{}'"),
+                    ("metadata_json", "TEXT DEFAULT '{}'"),
+                ]
+                for col_name, col_type in int_cols_to_add:
+                    if col_name not in existing_int_cols:
+                        cur.execute(f"ALTER TABLE integration_connections ADD COLUMN {col_name} {col_type}")
+
+            # Opportunities table check
+            cur.execute("PRAGMA table_info(opportunities)")
+            existing_opp_cols = {r[1] for r in cur.fetchall()}
+            if existing_opp_cols:
+                opp_cols_to_add = [
+                    ("is_stale", "BOOLEAN DEFAULT 0"),
+                    ("deadline_timezone", "TEXT DEFAULT 'IST'"),
+                    ("skills", "TEXT DEFAULT '[]'"),
+                    ("raw_metadata", "TEXT DEFAULT '{}'"),
+                ]
+                for col_name, col_type in opp_cols_to_add:
+                    if col_name not in existing_opp_cols:
+                        cur.execute(f"ALTER TABLE opportunities ADD COLUMN {col_name} {col_type}")
+
             conn.commit()
             conn.close()
         except Exception as e:

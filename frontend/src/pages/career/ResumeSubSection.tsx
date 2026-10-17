@@ -72,6 +72,7 @@ export const ResumeSubSection: React.FC = () => {
    * ========================================================================= */
   const fetchResumes = useCallback(async (selectId?: string) => {
     try {
+      setIsLoading(true);
       setErrorMsg(null);
       const res = await fetch(`${API_BASE}/resumes`);
       if (!res.ok) throw new Error('Failed to load resumes from server.');
@@ -500,18 +501,39 @@ export const ResumeSubSection: React.FC = () => {
           No Active Resume Available
         </h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          We could not load your master resume profile. Click below to re-initialize your workspace.
+          We could not load your master resume profile. Ensure the backend server is running on port 8000 and click below to re-initialize your workspace.
         </p>
+        {errorMsg && (
+          <p className="text-xs text-rose-500 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-lg p-2 max-w-md mx-auto">
+            {errorMsg}
+          </p>
+        )}
         <button
           onClick={() => fetchResumes()}
-          className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs inline-flex items-center gap-1.5"
+          disabled={isLoading}
+          className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-semibold text-xs inline-flex items-center gap-1.5"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Reload Studio</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>{isLoading ? 'Connecting to Backend...' : 'Reload Studio'}</span>
         </button>
       </div>
     );
   }
+
+  const handleExportPdf = () => {
+    const wasEditing = isEditing;
+    // Temporarily turn off editing mode so print output renders pure text spans
+    setIsEditing(false);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+        // Restore previous editing state after print dialog opens
+        setTimeout(() => {
+          setIsEditing(wasEditing);
+        }, 500);
+      }, 50);
+    });
+  };
 
   return (
     <div className="flex flex-col h-[86vh] min-h-[720px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden select-none">
@@ -542,7 +564,7 @@ export const ResumeSubSection: React.FC = () => {
           if (el) (el as HTMLElement).click();
         }}
         onOpenCompareModal={() => setIsCompareOpen(true)}
-        onExportPdf={() => window.print()}
+        onExportPdf={handleExportPdf}
         onOpenUploadModal={() => setIsUploadOpen(true)}
       />
 

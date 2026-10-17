@@ -603,6 +603,15 @@ export const ApplicationsSubSection: React.FC = () => {
                 <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]">
                   Submitted Resume Snapshot
                 </h4>
+                <button
+                  onClick={() => {
+                    setCurrentSection('resume');
+                  }}
+                  className="text-[11px] font-semibold text-brand-600 hover:underline flex items-center gap-1"
+                >
+                  <FileText className="w-3 h-3" />
+                  <span>Open in Resume Studio</span>
+                </button>
               </div>
 
               {/* Attach / Change Tailored Resume */}
