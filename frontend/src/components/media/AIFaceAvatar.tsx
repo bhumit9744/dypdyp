@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Sparkles, Volume2, Mic, User } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { InterviewerPanelState } from './InterviewerPanel';
 
 export type AvatarPersona = 'sarah' | 'alex' | 'nova' | 'jarvis';
@@ -23,7 +23,7 @@ interface VisemeParams {
 export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
   state,
   persona = 'sarah',
-  onPersonaChange,
+  onPersonaChange: _onPersonaChange,
   className = ''
 }) => {
   const [selectedPersona, setSelectedPersona] = useState<AvatarPersona>(persona);
@@ -51,11 +51,6 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
   useEffect(() => {
     setSelectedPersona(persona);
   }, [persona]);
-
-  const handleSelectPersona = (p: AvatarPersona) => {
-    setSelectedPersona(p);
-    if (onPersonaChange) onPersonaChange(p);
-  };
 
   // -------------------------------------------------------------------------
   // 1. Natural Human Eye-Blinking Engine (Realistic 130ms sweep with double-blink)
@@ -266,61 +261,6 @@ export const AIFaceAvatar: React.FC<AIFaceAvatarProps> = ({
 
   return (
     <div className={`relative w-full h-full flex flex-col items-center justify-center overflow-hidden select-none bg-slate-950 ${className}`}>
-      {/* ===================================================================
-       * Persona Selector Toolbar (Floating Top-Right)
-       * =================================================================== */}
-      <div className="absolute top-3 right-3 z-40 flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/60 shadow-xl">
-        <button
-          onClick={() => handleSelectPersona('sarah')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-            selectedPersona === 'sarah'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-          title="Sarah - Principal System Architect"
-        >
-          <span>👩‍💼 Sarah</span>
-        </button>
-
-        <button
-          onClick={() => handleSelectPersona('alex')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-            selectedPersona === 'alex'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-          title="Alex - Senior Staff Tech Lead"
-        >
-          <span>👨‍💼 Alex</span>
-        </button>
-
-        <button
-          onClick={() => handleSelectPersona('nova')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-            selectedPersona === 'nova'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-          title="Nova - Interactive 3D Digital Human"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
-          <span>Nova 3D</span>
-        </button>
-
-        <button
-          onClick={() => handleSelectPersona('jarvis')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-            selectedPersona === 'jarvis'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          }`}
-          title="JARVIS - Holographic Neural Core"
-        >
-          <Bot className="w-3.5 h-3.5 text-cyan-300" />
-          <span>JARVIS</span>
-        </button>
-      </div>
-
       {/* ===================================================================
        * STAGE 1: Photorealistic Avatars with Seamless Anatomical Visemes
        * =================================================================== */}
