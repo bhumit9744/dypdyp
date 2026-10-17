@@ -29,6 +29,7 @@ import {
   Plus
 } from 'lucide-react';
 import { API_BASE } from '../../config/api';
+import { MOCK_RESUME_SUMMARIES } from '../../mock/resumeMockData';
 import { useApp } from '../../context/AppContext';
 import { Application, ApplicationStatus } from '../../types';
 
@@ -57,9 +58,15 @@ export const ApplicationsSubSection: React.FC = () => {
     fetch(`${API_BASE}/resumes`)
       .then((r) => r.json())
       .then((data) => {
-        if (Array.isArray(data)) setUserResumes(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setUserResumes(data);
+        } else {
+          setUserResumes(MOCK_RESUME_SUMMARIES);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        setUserResumes(MOCK_RESUME_SUMMARIES);
+      });
   }, []);
 
   const handleAttachResume = async (appId: string, resumeId: string) => {

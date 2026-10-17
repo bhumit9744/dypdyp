@@ -33,6 +33,13 @@ import {
   RecommendationModal
 } from './resume/ResumeModals';
 import { API_BASE } from '../../config/api';
+import {
+  MOCK_RESUME_SUMMARIES,
+  MOCK_MASTER_RESUME,
+  MOCK_FULL_RESUMES,
+  MOCK_ALUMNI_EXAMPLES,
+  MOCK_BEST_RECOMMENDATION
+} from '../../mock/resumeMockData';
 
 export const ResumeSubSection: React.FC = () => {
   const { studentProfile, skills, jobs, setCurrentSection, setCurrentSubSection } = useApp();
@@ -89,18 +96,35 @@ export const ResumeSubSection: React.FC = () => {
       setIsLoading(true);
       setErrorMsg(null);
       const res = await fetch(`${API_BASE}/resumes`);
-      if (!res.ok) throw new Error('Failed to load resumes from server.');
+      if (!res.ok) throw new Error('Offline mode');
       const data: ResumeVersionSummary[] = await res.json();
-      setResumes(data);
-
-      const targetId = selectId || activeResumeId || (data.length > 0 ? data[0].id : '');
-      if (targetId) {
+      if (!data || data.length === 0) {
+        // Fall back to built-in mock resumes
+        setResumes(MOCK_RESUME_SUMMARIES);
+        const targetId = selectId || activeResumeId || MOCK_RESUME_SUMMARIES[0].id;
         setActiveResumeId(targetId);
-        await fetchResumeDetail(targetId);
+        const initialDoc = MOCK_FULL_RESUMES[targetId] || MOCK_MASTER_RESUME;
+        setActiveResume(initialDoc);
+        setHistory([initialDoc.content]);
+        setHistoryIndex(0);
+      } else {
+        setResumes(data);
+        const targetId = selectId || activeResumeId || (data.length > 0 ? data[0].id : '');
+        if (targetId) {
+          setActiveResumeId(targetId);
+          await fetchResumeDetail(targetId);
+        }
       }
     } catch (err: any) {
-      console.error('Error fetching resumes:', err);
-      setErrorMsg(err.message || 'Could not connect to Placement Hub backend.');
+      console.warn('Backend resumes endpoint unreachable, loaded default mock resume dataset:', err);
+      setResumes(MOCK_RESUME_SUMMARIES);
+      const targetId = selectId || activeResumeId || MOCK_RESUME_SUMMARIES[0].id;
+      setActiveResumeId(targetId);
+      const initialDoc = MOCK_FULL_RESUMES[targetId] || MOCK_MASTER_RESUME;
+      setActiveResume(initialDoc);
+      setHistory([initialDoc.content]);
+      setHistoryIndex(0);
+      setErrorMsg(null);
     } finally {
       setIsLoading(false);
     }
@@ -116,8 +140,11 @@ export const ResumeSubSection: React.FC = () => {
       setHistory([doc.content]);
       setHistoryIndex(0);
     } catch (err: any) {
-      console.error('Error fetching resume detail:', err);
-      setErrorMsg(err.message);
+      console.warn(`Backend detail unreachable for ${id}, using mock document:`, err);
+      const fallback = MOCK_FULL_RESUMES[id] || MOCK_MASTER_RESUME;
+      setActiveResume(fallback);
+      setHistory([fallback.content]);
+      setHistoryIndex(0);
     }
   };
 
@@ -126,10 +153,15 @@ export const ResumeSubSection: React.FC = () => {
       const res = await fetch(`${API_BASE}/resumes/alumni-examples`);
       if (res.ok) {
         const data = await res.json();
-        setAlumniExamples(data);
+        if (data && data.length > 0) {
+          setAlumniExamples(data);
+          return;
+        }
       }
+      setAlumniExamples(MOCK_ALUMNI_EXAMPLES);
     } catch (err) {
-      console.error('Error fetching alumni examples:', err);
+      console.warn('Error fetching alumni examples, using mock dataset:', err);
+      setAlumniExamples(MOCK_ALUMNI_EXAMPLES);
     }
   };
 
@@ -482,9 +514,14 @@ export const ResumeSubSection: React.FC = () => {
         const data = await res.json();
         setRecommendation(data);
         setIsRecommendOpen(true);
+      } else {
+        setRecommendation(MOCK_BEST_RECOMMENDATION);
+        setIsRecommendOpen(true);
       }
     } catch (err) {
-      console.error('Failed to fetch recommendation:', err);
+      console.warn('Backend recommendation unavailable, using mock recommendation:', err);
+      setRecommendation(MOCK_BEST_RECOMMENDATION);
+      setIsRecommendOpen(true);
     }
   };
 

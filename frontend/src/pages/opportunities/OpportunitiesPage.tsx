@@ -40,6 +40,13 @@ import {
 } from '../../types';
 import { ResumeVersionSummary } from '../../types/resume';
 import { API_BASE } from '../../config/api';
+import {
+  MOCK_OPPORTUNITIES,
+  MOCK_SAVED_OPPORTUNITIES,
+  MOCK_AUDIT_REPORTS,
+  getMockMatchEvaluation
+} from '../../mock/opportunitiesMockData';
+import { MOCK_RESUME_SUMMARIES } from '../../mock/resumeMockData';
 
 export const OpportunitiesPage: React.FC = () => {
   // Main listings state
@@ -103,14 +110,14 @@ export const OpportunitiesPage: React.FC = () => {
 
   // Initial Data Fetch
   const fetchOpportunities = async () => {
+    let categoryParam = '';
+    if (activeTab === 'jobs') categoryParam = 'job';
+    else if (activeTab === 'hackathons') categoryParam = 'hackathon';
+    else if (activeTab === 'scholarships') categoryParam = 'scholarship';
+
     try {
       setLoading(true);
       setError(null);
-
-      let categoryParam = '';
-      if (activeTab === 'jobs') categoryParam = 'job';
-      else if (activeTab === 'hackathons') categoryParam = 'hackathon';
-      else if (activeTab === 'scholarships') categoryParam = 'scholarship';
 
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.append('q', searchQuery.trim());
@@ -123,10 +130,38 @@ export const OpportunitiesPage: React.FC = () => {
       const res = await fetch(`${API_BASE}/opportunities?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load opportunities`);
       const data = await res.json();
-      setOpportunities(data.items || []);
-      setTotalOpportunities(data.total || 0);
+      if (!data.items || data.items.length === 0) {
+        throw new Error('Empty backend opportunities');
+      }
+      setOpportunities(data.items);
+      setTotalOpportunities(data.total || data.items.length);
+      setError(null);
     } catch (err: any) {
-      setError(err.message || 'Unable to communicate with Opportunities service.');
+      console.warn('Backend opportunities service unreachable, displaying mock catalog:', err);
+      let filtered = [...MOCK_OPPORTUNITIES];
+      if (categoryParam) {
+        filtered = filtered.filter(o => o.category === categoryParam);
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter(o =>
+          o.title.toLowerCase().includes(q) ||
+          o.company_or_organizer.toLowerCase().includes(q) ||
+          o.skills.some(s => s.toLowerCase().includes(q))
+        );
+      }
+      if (selectedRemote !== 'all') {
+        filtered = filtered.filter(o => o.remote_status === selectedRemote);
+      }
+      if (selectedCompensation !== 'all') {
+        filtered = filtered.filter(o => o.compensation_type === selectedCompensation);
+      }
+      if (selectedStatus !== 'all') {
+        filtered = filtered.filter(o => o.status === selectedStatus);
+      }
+      setOpportunities(filtered);
+      setTotalOpportunities(filtered.length);
+      setError(null);
     } finally {
       setLoading(false);
     }
@@ -140,10 +175,15 @@ export const OpportunitiesPage: React.FC = () => {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setSavedOpportunities(data || []);
+        if (data && data.length > 0) {
+          setSavedOpportunities(data);
+          return;
+        }
       }
+      setSavedOpportunities(MOCK_SAVED_OPPORTUNITIES);
     } catch (err) {
-      console.error('Failed to load saved opportunities:', err);
+      console.warn('Failed to load saved opportunities, falling back to mock:', err);
+      setSavedOpportunities(MOCK_SAVED_OPPORTUNITIES);
     }
   };
 
@@ -152,13 +192,24 @@ export const OpportunitiesPage: React.FC = () => {
       const res = await fetch(`${API_BASE}/resumes`);
       if (res.ok) {
         const data = await res.json();
-        setResumes(data || []);
-        if (data && data.length > 0 && !selectedResumeId) {
-          setSelectedResumeId(data[0].id);
+        if (data && data.length > 0) {
+          setResumes(data);
+          if (!selectedResumeId) {
+            setSelectedResumeId(data[0].id);
+          }
+          return;
         }
       }
+      setResumes(MOCK_RESUME_SUMMARIES);
+      if (!selectedResumeId && MOCK_RESUME_SUMMARIES.length > 0) {
+        setSelectedResumeId(MOCK_RESUME_SUMMARIES[0].id);
+      }
     } catch (err) {
-      console.error('Failed to load resumes:', err);
+      console.warn('Failed to load resumes, falling back to mock:', err);
+      setResumes(MOCK_RESUME_SUMMARIES);
+      if (!selectedResumeId && MOCK_RESUME_SUMMARIES.length > 0) {
+        setSelectedResumeId(MOCK_RESUME_SUMMARIES[0].id);
+      }
     }
   };
 
@@ -168,10 +219,15 @@ export const OpportunitiesPage: React.FC = () => {
       const res = await fetch(`${API_BASE}/opportunities/providers/audit`);
       if (res.ok) {
         const data = await res.json();
-        setAuditReports(data || []);
+        if (data && data.length > 0) {
+          setAuditReports(data);
+          return;
+        }
       }
+      setAuditReports(MOCK_AUDIT_REPORTS);
     } catch (err) {
-      console.error('Failed to load audit reports:', err);
+      console.warn('Failed to load audit reports, falling back to mock:', err);
+      setAuditReports(MOCK_AUDIT_REPORTS);
     } finally {
       setAuditLoading(false);
     }
@@ -250,7 +306,8 @@ export const OpportunitiesPage: React.FC = () => {
       const data = await res.json();
       setEvalData(data);
     } catch (err) {
-      console.error(err);
+      console.warn('Backend evaluation unavailable, using mock match analysis:', err);
+      setEvalData(getMockMatchEvaluation(opp));
     } finally {
       setEvalLoading(false);
     }

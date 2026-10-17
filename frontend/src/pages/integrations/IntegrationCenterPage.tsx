@@ -31,6 +31,7 @@ import {
   GitHubDataResponse
 } from '../../types';
 import { API_BASE } from '../../config/api';
+import { MOCK_INTEGRATION_CARDS } from '../../mock/integrationsMockData';
 
 const GitHubIcon: React.FC<{ className?: string }> = ({ className = 'w-6 h-6' }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -75,9 +76,15 @@ export const IntegrationCenterPage: React.FC = () => {
         throw new Error(`Failed to load integrations (HTTP ${res.status})`);
       }
       const data: IntegrationProviderCard[] = await res.json();
-      setCards(data);
+      if (!data || data.length === 0) {
+        setCards(MOCK_INTEGRATION_CARDS);
+      } else {
+        setCards(data);
+      }
     } catch (err: any) {
-      setError(err.message || 'Unable to communicate with the integration service.');
+      console.warn('Backend integrations service unreachable, using mock cards:', err);
+      setCards(MOCK_INTEGRATION_CARDS);
+      setError(null);
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
-from .core.database import engine, Base, init_db_schema
+from .core.database import engine, Base, init_db_schema, seed_initial_mock_data
 from .models import models
 from .api.endpoints import router as api_router
 from .api.interview_endpoints import router as interview_router
@@ -16,6 +16,7 @@ from .api.vapi_endpoints import router as vapi_router
 
 # Initialize database tables and columns
 init_db_schema()
+seed_initial_mock_data()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

@@ -45,6 +45,9 @@ logger = logging.getLogger("vapi_service")
 # ---------------------------------------------------------------------------
 VAPI_JARVIS_SYSTEM_PROMPT = (
     "You are Jarvis, the candidate's executive AI career agent inside Placement Hub. "
+    "LANGUAGE RESTRICTION: You MUST speak, converse, and reply EXCLUSIVELY in English at all times. "
+    "Under NO circumstances should you use, translate, or switch to any other language, even if the candidate speaks in another language. "
+    "Every spoken utterance, transcript, greeting, and response must be 100% in fluent, professional English. "
     "You have FULL AUTHORIZATION, COMPLETE READ PERMISSION, AND UNRESTRICTED ACCESS to view the "
     "authenticated candidate's complete profile, academic records (CGPA, department, college: Dr. D.Y. Patil College of Engineering), "
     "master resume, tailored versions, ATS scores, placement applications, and interview performance. "
@@ -415,6 +418,12 @@ class VapiService:
             "public_key": public_key or None,
             "assistant_id": assistant_id or None,
             "system_prompt": VAPI_JARVIS_SYSTEM_PROMPT,
+            "language": "en",
+            "transcriber": {
+                "provider": "deepgram",
+                "model": "nova-2",
+                "language": "en",
+            },
             "tools_count": len(VAPI_TOOL_DEFINITIONS),
             "voice": {
                 "provider": "11labs",

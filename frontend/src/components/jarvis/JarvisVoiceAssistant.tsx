@@ -206,13 +206,29 @@ export const JarvisVoiceAssistant: React.FC = () => {
       if (cfgRes && cfgRes.ok) {
         const data: VapiConfigResponse = await cfgRes.json();
         setVapiConfig(data);
+      } else {
+        // Fallback mock Vapi configuration for offline / static deployments
+        setVapiConfig({
+          configured: true,
+          public_key: (import.meta.env.VITE_VAPI_PUBLIC_KEY as string) || null,
+          assistant_id: (import.meta.env.VITE_VAPI_ASSISTANT_ID as string) || null,
+          system_prompt: 'Jarvis Executive Voice Agent (Placement Hub)',
+          tools_count: 8
+        });
       }
       if (toolsRes && toolsRes.ok) {
         const toolsData = await toolsRes.json();
         setToolCatalog(toolsData.tools || []);
+      } else {
+        setToolCatalog([
+          { name: 'open_app_or_website', description: 'Open external and internal apps (LinkedIn, GitHub, Profile)' },
+          { name: 'open_resume_pdf', description: 'Open verified master resume document' },
+          { name: 'post_to_linkedin', description: 'Draft and publish updates directly to LinkedIn' },
+          { name: 'open_job_profile', description: 'Explore matched opportunity and job listings' }
+        ]);
       }
     } catch (err) {
-      console.warn('Could not load Vapi configuration from backend:', err);
+      console.warn('Could not load Vapi configuration from backend, loaded default mock configuration:', err);
     }
   }, []);
 
@@ -910,6 +926,9 @@ export const JarvisVoiceAssistant: React.FC = () => {
 
       const fullSystemPrompt = (
         (vapiConfig?.assistant_instructions || vapiConfig?.system_prompt || '') +
+        `\n\nLANGUAGE RESTRICTION: You MUST speak, converse, and reply EXCLUSIVELY in English at all times.` +
+        `\nUnder NO circumstance should you use, translate, or switch to any other language, even if the user speaks to you in another language.` +
+        `\nEvery spoken response, greeting, transcript, and tool description must be strictly in clear, professional English.` +
         `\n\nAUTHORIZATION NOTICE: You have FULL READ ACCESS, APP OPENING PERMISSIONS, AND NAVIGATION RIGHTS:` +
         `\n- Candidate Name: ${candidateContext.student_name}` +
         `\n- College: ${candidateContext.student_college}` +
@@ -925,13 +944,23 @@ export const JarvisVoiceAssistant: React.FC = () => {
         `\nYou are fully empowered to cite, review, discuss, and execute all student operations without restrictions.`
       ).trim();
 
+      const englishTranscriber = {
+        provider: 'deepgram',
+        model: 'nova-2',
+        language: 'en'
+      };
+
       if (effectiveAssistantId) {
         try {
-          await vapiRef.current.start(effectiveAssistantId);
+          await vapiRef.current.start(effectiveAssistantId, {
+            transcriber: englishTranscriber,
+            variableValues: candidateContext
+          });
         } catch (startErr) {
           console.warn('Assistant ID start failed, falling back to direct assistant config:', startErr);
           await vapiRef.current.start({
             name: 'Jarvis Placement Hub Assistant',
+            transcriber: englishTranscriber,
             firstMessage: `Good day, ${candidateContext.student_name}! I am Jarvis, with full authorized access to your verified profile, master resume, and placement pipeline. How can I assist you with your career goals today?`,
             model: {
               provider: 'openai',
@@ -948,6 +977,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
       } else {
         await vapiRef.current.start({
           name: 'Jarvis Placement Hub Assistant',
+          transcriber: englishTranscriber,
           firstMessage: `Good day, ${candidateContext.student_name}! I am Jarvis, with full authorized access to your verified profile, master resume, and placement pipeline. How can I assist you with your career goals today?`,
           model: {
             provider: 'openai',
