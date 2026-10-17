@@ -1119,12 +1119,14 @@ export const JarvisVoiceAssistant: React.FC = () => {
         setJarvisStatus(data);
       }
       if (liRes && liRes.ok) {
-        const posts = await liRes.json();
-        setLiPosts(posts);
+        const postsData = await liRes.json();
+        const postList = Array.isArray(postsData) ? postsData : (postsData?.posts || []);
+        setLiPosts(postList.filter((p: any) => p && typeof p === 'object'));
       }
       if (mailRes && mailRes.ok) {
-        const mails = await mailRes.json();
-        setInboxEmails(mails);
+        const mailsData = await mailRes.json();
+        const mailList = Array.isArray(mailsData) ? mailsData : (mailsData?.inbox || mailsData?.emails || []);
+        setInboxEmails(mailList.filter((m: any) => m && typeof m === 'object'));
       }
     } catch (err) {
       console.warn('Error fetching Jarvis telemetry:', err);
@@ -1370,7 +1372,10 @@ export const JarvisVoiceAssistant: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setLiPosts(prev => [data.post, ...prev]);
+        const postObj = data?.post || data;
+        if (postObj && typeof postObj === 'object') {
+          setLiPosts(prev => [postObj, ...prev.filter(p => p && p.id !== postObj.id)]);
+        }
       }
     } catch (e) {
       console.warn('LinkedIn post generation error:', e);
@@ -1387,6 +1392,11 @@ export const JarvisVoiceAssistant: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          target_name: outreachTarget,
+          target_company: outreachCompany || 'Tech Partner',
+          target_role: outreachTarget,
+          student_interest: 'Software Engineering & Cloud Systems',
+          connection_type: 'alumni',
           recipient_role: outreachTarget,
           company: outreachCompany,
           mutual_context: 'D.Y. Patil College of Engineering Placement Drive'
@@ -1394,7 +1404,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setOutreachResult(data.message);
+        setOutreachResult(data.message || data.outreach || (typeof data === 'string' ? data : ''));
       }
     } catch (e) {
       console.warn('Outreach generation error:', e);
@@ -1413,16 +1423,23 @@ export const JarvisVoiceAssistant: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recipient_name: mailRecipientName,
-          recipient_email: mailRecipientEmail,
+          recipient_name: mailRecipientName || 'Hiring Manager',
+          recipient_email: mailRecipientEmail || 'recruiter@tech.com',
+          email_type: mailType,
           purpose: mailType,
+          job_role: 'Software Engineer',
+          company_name: 'Campus Partner',
+          custom_notes: 'Software Engineering interview round at D.Y. Patil College of Engineering',
           context_notes: 'Software Engineering interview round at D.Y. Patil College of Engineering'
         })
       });
       if (res.ok) {
         const data = await res.json();
-        setMailSubject(data.draft.subject);
-        setMailBody(data.draft.body);
+        const draftObj = data?.draft || data;
+        if (draftObj) {
+          setMailSubject(draftObj.subject || '');
+          setMailBody(draftObj.body || '');
+        }
       }
     } catch (e) {
       console.warn('Mail draft error:', e);
@@ -1440,6 +1457,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          to_email: mailRecipientEmail,
           recipient_email: mailRecipientEmail,
           subject: mailSubject,
           body: mailBody
@@ -2228,26 +2246,26 @@ export const JarvisVoiceAssistant: React.FC = () => {
                   </div>
 
                   {/* Historical Drafts */}
-                  {liPosts.length > 0 && (
+                  {liPosts.filter(p => p && typeof p === 'object').length > 0 && (
                     <div className="space-y-2">
                       <span className="font-bold text-slate-700 dark:text-slate-300">Generated LinkedIn Drafts:</span>
-                      {liPosts.map(p => (
+                      {liPosts.filter(p => p && typeof p === 'object').map((p, idx) => (
                         <div
-                          key={p.id}
+                          key={p.id || `lip_${idx}`}
                           className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 shadow-xs"
                         >
                           <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                            <span>{p.title}</span>
+                            <span>{p.title || 'LinkedIn Career Milestone'}</span>
                             <button
-                              onClick={() => copyToClipboard(p.content, p.id)}
+                              onClick={() => copyToClipboard(p.content || '', p.id || `lip_${idx}`)}
                               className="text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
                             >
-                              {copiedId === p.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                              <span>{copiedId === p.id ? 'Copied' : 'Copy Post'}</span>
+                              {copiedId === (p.id || `lip_${idx}`) ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedId === (p.id || `lip_${idx}`) ? 'Copied' : 'Copy Post'}</span>
                             </button>
                           </div>
                           <p className="whitespace-pre-wrap leading-relaxed text-slate-800 dark:text-slate-200">
-                            {p.content}
+                            {p.content || ''}
                           </p>
                         </div>
                       ))}
@@ -2371,29 +2389,29 @@ export const JarvisVoiceAssistant: React.FC = () => {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {inboxEmails.length === 0 ? (
+                      {inboxEmails.filter(m => m && typeof m === 'object').length === 0 ? (
                         <div className="p-8 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
                           <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
                           <p>No active recruiter threads yet. Connect campus email in Integrations.</p>
                         </div>
                       ) : (
-                        inboxEmails.map(mail => (
+                        inboxEmails.filter(mail => mail && typeof mail === 'object').map((mail, idx) => (
                           <div
-                            key={mail.id}
+                            key={mail.id || `mail_${idx}`}
                             className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5 hover:border-purple-300 transition-colors cursor-pointer"
                             onClick={() => {
-                              setMailRecipientName(mail.sender);
+                              setMailRecipientName(mail.sender || mail.sender_name || 'Campus Recruiter');
                               setMailRecipientEmail(mail.sender_email || 'recruiter@tech.com');
-                              setMailSubject(`Re: ${mail.subject}`);
+                              setMailSubject(`Re: ${mail.subject || 'Application'}`);
                               setMailSubTab('compose');
                             }}
                           >
                             <div className="flex items-center justify-between text-[11px]">
-                              <span className="font-bold text-slate-800 dark:text-slate-200">{mail.sender}</span>
-                              <span className="text-[10px] text-slate-400 font-mono">{mail.received_at}</span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200">{mail.sender || mail.sender_name || 'Campus Recruiter'}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{mail.received_at || mail.date || 'Today'}</span>
                             </div>
-                            <div className="font-medium text-slate-700 dark:text-slate-300">{mail.subject}</div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">{mail.snippet}</p>
+                            <div className="font-medium text-slate-700 dark:text-slate-300">{mail.subject || 'Subject'}</div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">{mail.snippet || ''}</p>
                           </div>
                         ))
                       )}

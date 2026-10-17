@@ -49,24 +49,30 @@ class LinkedInPostRequest(BaseModel):
     include_hashtags: bool = True
 
 class LinkedInOutreachRequest(BaseModel):
-    target_name: str
-    target_company: str
-    target_role: str
-    student_interest: str
+    target_name: Optional[str] = "Alumni / Recruiter"
+    target_company: Optional[str] = "Tech Partner"
+    target_role: Optional[str] = "Engineering Lead"
+    student_interest: Optional[str] = "Software Engineering & Systems Architecture"
     connection_type: str = Field(default="alumni", description="alumni, recruiter, hiring_manager")
+    recipient_role: Optional[str] = None
+    company: Optional[str] = None
+    mutual_context: Optional[str] = None
 
 class EmailDraftRequest(BaseModel):
-    recipient_name: str
-    recipient_email: str
-    email_type: str = Field(..., description="thank_you, follow_up, cold_outreach, recommendation_request, acceptance")
+    recipient_name: Optional[str] = "Hiring Manager"
+    recipient_email: Optional[str] = "recruiter@partner.com"
+    email_type: Optional[str] = Field(default="thank_you", description="thank_you, follow_up, cold_outreach, recommendation_request, acceptance")
+    purpose: Optional[str] = None
     job_role: Optional[str] = "Software Engineer"
     company_name: Optional[str] = "Tech Corp"
     custom_notes: Optional[str] = None
+    context_notes: Optional[str] = None
 
 class EmailSendRequest(BaseModel):
-    to_email: str
-    subject: str
-    body: str
+    to_email: Optional[str] = None
+    recipient_email: Optional[str] = None
+    subject: str = "Placement Communication"
+    body: str = ""
     recipient_name: Optional[str] = None
 
 class JarvisCommandRequest(BaseModel):
@@ -320,39 +326,56 @@ Formatting rules:
             "status": "draft"
         }
         _LINKEDIN_POSTS_STORE.insert(0, post_obj)
-        return post_obj
+        return {
+            **post_obj,
+            "post": post_obj
+        }
 
     def generate_linkedin_outreach(self, payload: LinkedInOutreachRequest) -> Dict[str, Any]:
+        target_name = payload.target_name or "Alumni / Recruiter"
+        target_company = payload.target_company or payload.company or "Tech Partner"
+        target_role = payload.target_role or payload.recipient_role or "Engineering Lead"
+        student_interest = payload.student_interest or payload.mutual_context or "Software Engineering"
+        connection_type = payload.connection_type or "alumni"
+
         prompt = f"""
 You are JARVIS. Draft a personalized, polite, and effective LinkedIn connection note / message to an alumni or recruiter.
 
-Target: {payload.target_name} at {payload.target_company} ({payload.target_role})
-Student Background / Interest: {payload.student_interest}
-Relationship: {payload.connection_type}
+Target: {target_name} at {target_company} ({target_role})
+Student Background / Interest: {student_interest}
+Relationship: {connection_type}
 
 Provide two versions:
 1. Short Connection Request (strictly under 300 characters for LinkedIn connection note limit).
 2. Follow-up Message (for after they accept, ~100-150 words with a specific call to action).
 """
         text = self._call_gemini_text(prompt, fallback=(
-            f"Hi {payload.target_name}, I'm a final-year CS student inspired by your work at {payload.target_company}. "
-            f"I've been working on {payload.student_interest} and would love to connect and learn from your journey. Best regards!"
+            f"Hi {target_name}, I'm a final-year CS student inspired by your work at {target_company}. "
+            f"I've been working on {student_interest} and would love to connect and learn from your journey. Best regards!"
         ))
         return {
-            "target": f"{payload.target_name} ({payload.target_company})",
-            "message": text
+            "target": f"{target_name} ({target_company})",
+            "message": text,
+            "outreach": text
         }
 
     # --- Mail Plugin Actions ---
     def draft_email(self, payload: EmailDraftRequest) -> Dict[str, Any]:
+        recipient_name = payload.recipient_name or "Hiring Manager"
+        recipient_email = payload.recipient_email or "recruiter@partner.com"
+        email_type = payload.email_type or payload.purpose or "thank_you"
+        job_role = payload.job_role or "Software Engineer"
+        company_name = payload.company_name or "Tech Corp"
+        custom_notes = payload.custom_notes or payload.context_notes or "None provided"
+
         prompt = f"""
 You are JARVIS. Draft a polished, professional email.
 
-Recipient: {payload.recipient_name} <{payload.recipient_email}>
-Purpose / Type: {payload.email_type} (e.g. thank you after interview, follow-up, or cold outreach)
-Role: {payload.job_role}
-Company: {payload.company_name}
-Additional Notes: {payload.custom_notes or "None provided"}
+Recipient: {recipient_name} <{recipient_email}>
+Purpose / Type: {email_type} (e.g. thank you after interview, follow-up, or cold outreach)
+Role: {job_role}
+Company: {company_name}
+Additional Notes: {custom_notes}
 
 Generate:
 1. Subject line (crisp, professional, clear)
@@ -360,12 +383,12 @@ Generate:
 3. Body paragraphs
 4. Professional sign-off
 """
-        fallback_subject = f"Thank you - Interview for {payload.job_role} at {payload.company_name}"
+        fallback_subject = f"Thank you - Interview for {job_role} at {company_name}"
         fallback_body = (
-            f"Dear {payload.recipient_name},\n\n"
-            f"Thank you for taking the time to speak with me today regarding the {payload.job_role} position at {payload.company_name}. "
+            f"Dear {recipient_name},\n\n"
+            f"Thank you for taking the time to speak with me today regarding the {job_role} position at {company_name}. "
             f"I thoroughly enjoyed learning more about your engineering team's vision.\n\n"
-            f"Our discussion reaffirmed my strong interest in joining {payload.company_name}. "
+            f"Our discussion reaffirmed my strong interest in joining {company_name}. "
             f"Please let me know if you need any additional information or code samples.\n\n"
             f"Sincerely,\nCandidate Student\nD.Y. Patil College of Engineering"
         )
@@ -379,24 +402,29 @@ Generate:
             body = parts[1].strip() if len(parts) > 1 else content
 
         return {
-            "recipient_name": payload.recipient_name,
-            "recipient_email": payload.recipient_email,
+            "recipient_name": recipient_name,
+            "recipient_email": recipient_email,
             "subject": subject,
-            "body": body
+            "body": body,
+            "draft": {
+                "subject": subject,
+                "body": body
+            }
         }
 
     def send_email(self, payload: EmailSendRequest) -> Dict[str, Any]:
+        to_address = payload.to_email or payload.recipient_email or "recruiter@partner.com"
         record = {
             "id": f"mail_sent_{int(datetime.datetime.utcnow().timestamp())}",
-            "to": payload.to_email,
-            "recipient_name": payload.recipient_name or payload.to_email.split('@')[0],
+            "to": to_address,
+            "recipient_name": payload.recipient_name or to_address.split('@')[0],
             "subject": payload.subject,
             "body": payload.body,
             "sent_at": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M"),
             "status": "delivered"
         }
         _EMAIL_SENT_STORE.insert(0, record)
-        return {"success": True, "message": f"Email successfully dispatched to {payload.to_email}.", "record": record}
+        return {"success": True, "message": f"Email successfully dispatched to {to_address}.", "record": record}
 
     def get_inbox(self) -> List[Dict[str, Any]]:
         return _EMAIL_INBOX_STORE
