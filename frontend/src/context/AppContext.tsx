@@ -119,6 +119,113 @@ interface AppContextType {
 
 const API_BASE = 'http://127.0.0.1:8000/api/v1';
 
+export const normalizeInterviewExperience = (item: any): InterviewExperience => {
+  if (!item || typeof item !== 'object') {
+    return {
+      id: `exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      companyName: 'Company',
+      companyLogo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=128',
+      roleTitle: 'Software Engineer',
+      recruitmentYear: 2026,
+      recruitmentType: 'On-Campus TPO',
+      authorName: 'Candidate',
+      authorBatch: '2026',
+      isAnonymous: false,
+      overallDifficulty: 'Medium',
+      outcome: 'Offer Received',
+      roundsBreakdown: [],
+      technicalQuestions: [],
+      studyMaterialsRecommended: [],
+      preparationChecklist: [],
+      similarCompanyRecommendations: [],
+      submissionDate: 'Recent',
+      verificationBadge: 'Student Reported',
+      helpfulCount: 5
+    };
+  }
+
+  // If item already has technicalQuestions as an array and roundsBreakdown as an array
+  const hasTechQuestions = Array.isArray(item.technicalQuestions) && item.technicalQuestions.length > 0;
+  const hasRounds = Array.isArray(item.roundsBreakdown) && item.roundsBreakdown.length > 0;
+
+  if (hasTechQuestions && hasRounds) {
+    return {
+      ...item,
+      companyName: item.companyName || 'Company',
+      companyLogo: item.companyLogo || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=128',
+      roleTitle: item.roleTitle || 'Software Engineer',
+      recruitmentYear: item.recruitmentYear || 2026,
+      recruitmentType: item.recruitmentType || 'On-Campus TPO',
+      authorName: item.authorName || item.studentName || 'Candidate',
+      authorBatch: item.authorBatch || '2026',
+      isAnonymous: Boolean(item.isAnonymous),
+      overallDifficulty: item.overallDifficulty || item.difficulty || 'Medium',
+      outcome: item.outcome || (item.placedStatus === 'Selected' ? 'Offer Received' : 'Rejected'),
+      roundsBreakdown: Array.isArray(item.roundsBreakdown) ? item.roundsBreakdown : [],
+      technicalQuestions: Array.isArray(item.technicalQuestions) ? item.technicalQuestions : [],
+      studyMaterialsRecommended: Array.isArray(item.studyMaterialsRecommended) ? item.studyMaterialsRecommended : ['Official Docs', 'LeetCode Curated List'],
+      preparationChecklist: Array.isArray(item.preparationChecklist) ? item.preparationChecklist : ['Revise fundamentals', 'Practice problem solving'],
+      similarCompanyRecommendations: Array.isArray(item.similarCompanyRecommendations) ? item.similarCompanyRecommendations : ['Google', 'Microsoft', 'Atlassian'],
+      submissionDate: item.submissionDate || item.interviewDate || 'Recent',
+      verificationBadge: item.verificationBadge || (item.verificationStatus === 'Verified' ? 'TPO Verified Experience' : 'Student Reported'),
+      helpfulCount: typeof item.helpfulCount === 'number' ? item.helpfulCount : (item.upvotes || 5)
+    };
+  }
+
+  // Parse topics from backend or fallback
+  const rawTopics = Array.isArray(item.topicsCovered) && item.topicsCovered.length > 0
+    ? item.topicsCovered
+    : (Array.isArray(item.topics_covered) && item.topics_covered.length > 0 ? item.topics_covered : ['DSA', 'System Design']);
+
+  const techQuestions = rawTopics.map((t: string) => ({
+    topic: (['DSA', 'Java', 'Python', 'DBMS', 'Operating Systems', 'Computer Networks', 'System Design', 'Web / Frameworks'].includes(t)
+      ? t
+      : 'System Design') as any,
+    question: `Real campus interview problem on ${t}`,
+    difficulty: (item.difficulty || item.overallDifficulty || 'Medium') as any
+  }));
+
+  const rawRounds = Array.isArray(item.rounds) && item.rounds.length > 0
+    ? item.rounds
+    : [
+        {
+          roundNumber: 1,
+          roundName: 'Technical & System Review',
+          roundType: 'Technical Round 1',
+          duration: '45 mins',
+          difficulty: item.difficulty || 'Medium',
+          description: item.overallExperience || item.overall_experience || 'Technical coding assessment and project architecture review.',
+          questionsAsked: rawTopics.map((t: string) => `In-depth questions on ${t} implementation`)
+        }
+      ];
+
+  const prepChecklist = item.preparationTips || item.preparation_tips
+    ? [String(item.preparationTips || item.preparation_tips)]
+    : (Array.isArray(item.preparationChecklist) ? item.preparationChecklist : ['Revise core data structures', 'Clarify constraints early']);
+
+  return {
+    id: item.id || `exp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    companyName: item.companyName || item.company_name || 'Enterprise Partner',
+    companyLogo: item.companyLogo || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=128',
+    roleTitle: item.roleTitle || item.role_title || 'Software Development Engineer',
+    recruitmentYear: item.recruitmentYear || 2026,
+    recruitmentType: item.recruitmentType || 'On-Campus TPO',
+    authorName: item.studentName || item.student_name || item.authorName || 'Candidate',
+    authorBatch: item.authorBatch || '2026',
+    isAnonymous: Boolean(item.isAnonymous),
+    overallDifficulty: (item.difficulty || item.overallDifficulty || 'Medium') as any,
+    outcome: (item.placedStatus === 'Selected' || item.placed_status === 'Selected' || item.outcome === 'Offer Received' ? 'Offer Received' : 'Rejected') as any,
+    roundsBreakdown: rawRounds,
+    technicalQuestions: techQuestions,
+    studyMaterialsRecommended: Array.isArray(item.studyMaterialsRecommended) ? item.studyMaterialsRecommended : ['Official Docs', 'LeetCode Curated List', 'System Design Primer'],
+    preparationChecklist: prepChecklist,
+    similarCompanyRecommendations: Array.isArray(item.similarCompanyRecommendations) ? item.similarCompanyRecommendations : ['Google', 'Microsoft', 'Razorpay', 'Atlassian'],
+    submissionDate: item.interviewDate || item.interview_date || item.submissionDate || 'Recent',
+    verificationBadge: item.verificationStatus === 'Verified' || item.verification_status === 'Verified' ? 'TPO Verified Experience' : 'Student Reported',
+    helpfulCount: typeof item.helpfulCount === 'number' ? item.helpfulCount : (item.upvotes || 8)
+  };
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -206,7 +313,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('hub_real_experiences');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalized = parsed.map(normalizeInterviewExperience);
+          return [
+            ...normalized,
+            ...mockInterviewExperiences.filter((m) => !normalized.some((n) => n.id === m.id))
+          ];
+        }
       }
     } catch {}
     return mockInterviewExperiences;
@@ -289,8 +402,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setInterviewExperiences(data);
-          localStorage.setItem('hub_real_experiences', JSON.stringify(data));
+          const normalized = data.map(normalizeInterviewExperience);
+          const merged = [
+            ...normalized,
+            ...mockInterviewExperiences.filter((m) => !normalized.some((n) => n.id === m.id))
+          ];
+          setInterviewExperiences(merged);
+          localStorage.setItem('hub_real_experiences', JSON.stringify(merged));
         }
       })
       .catch(() => {});
@@ -638,7 +756,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addInterviewExperience = async (exp: InterviewExperience) => {
-    const updated = [exp, ...interviewExperiences];
+    const normalized = normalizeInterviewExperience(exp);
+    const updated = [normalized, ...interviewExperiences.filter((e) => e.id !== normalized.id)];
     setInterviewExperiences(updated);
     localStorage.setItem('hub_real_experiences', JSON.stringify(updated));
 
@@ -647,17 +766,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          student_name: exp.authorName,
-          company_name: exp.companyName,
-          role_title: exp.roleTitle,
-          placed_status: exp.outcome === 'Offer Received' ? 'Selected' : 'Rejected',
+          student_name: normalized.authorName,
+          company_name: normalized.companyName,
+          role_title: normalized.roleTitle,
+          placed_status: normalized.outcome === 'Offer Received' ? 'Selected' : 'Rejected',
           package_lpa: null,
-          interview_date: exp.submissionDate,
-          difficulty: exp.overallDifficulty,
-          rounds: exp.roundsBreakdown,
-          overall_experience: exp.roundsBreakdown.map(r => `${r.roundName}: ${r.description}`).join(' '),
-          preparation_tips: exp.preparationChecklist.join(', '),
-          topics_covered: exp.technicalQuestions.map(q => q.topic)
+          interview_date: normalized.submissionDate,
+          difficulty: normalized.overallDifficulty,
+          rounds: normalized.roundsBreakdown,
+          overall_experience: (normalized.roundsBreakdown || []).map((r) => `${r.roundName}: ${r.description}`).join(' '),
+          preparation_tips: (normalized.preparationChecklist || []).join(', '),
+          topics_covered: (normalized.technicalQuestions || []).map((q) => q.topic)
         })
       });
     } catch (e) {

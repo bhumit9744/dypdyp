@@ -66,15 +66,15 @@ export const InterviewsSubSection: React.FC = () => {
   const [formIsAnonymous, setFormIsAnonymous] = useState<boolean>(false);
 
   // Extract unique companies
-  const companiesList = Array.from(new Set(interviewExperiences.map((e) => e.companyName)));
+  const companiesList = Array.from(new Set((interviewExperiences || []).map((e) => e.companyName || 'Company')));
 
   // Filter Experiences
-  const filteredExperiences = interviewExperiences.filter((exp) => {
+  const filteredExperiences = (interviewExperiences || []).filter((exp) => {
     const matchesSearch =
       searchQuery.trim() === '' ||
-      exp.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.roleTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      exp.technicalQuestions.some((q) => q.question.toLowerCase().includes(searchQuery.toLowerCase()));
+      (exp.companyName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (exp.roleTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (exp.technicalQuestions || []).some((q) => (q.question || '').toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesComp = selectedCompany === 'All' || exp.companyName === selectedCompany;
     const matchesDiff = selectedDifficulty === 'All' || exp.overallDifficulty === selectedDifficulty;
@@ -83,13 +83,13 @@ export const InterviewsSubSection: React.FC = () => {
   });
 
   // Extract all questions for the Technical Question Bank
-  const allTechnicalQuestions = interviewExperiences.flatMap((exp) =>
-    exp.technicalQuestions.map((q) => ({
+  const allTechnicalQuestions = (interviewExperiences || []).flatMap((exp) =>
+    (exp.technicalQuestions || []).map((q) => ({
       ...q,
-      companyName: exp.companyName,
-      companyLogo: exp.companyLogo,
-      roleTitle: exp.roleTitle,
-      year: exp.recruitmentYear
+      companyName: exp.companyName || 'Company',
+      companyLogo: exp.companyLogo || '',
+      roleTitle: exp.roleTitle || 'Candidate',
+      year: exp.recruitmentYear || 2026
     }))
   );
 
@@ -379,17 +379,17 @@ export const InterviewsSubSection: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                   <div className="flex items-start space-x-3.5">
                     <img
-                      src={exp.companyLogo}
-                      alt={exp.companyName}
+                      src={exp.companyLogo || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=128'}
+                      alt={exp.companyName || 'Company'}
                       className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-800 shadow-xs shrink-0"
                     />
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                          {exp.companyName}
+                          {exp.companyName || 'Company'}
                         </h3>
                         <span className="text-xs text-slate-500 font-medium">
-                          ({exp.recruitmentYear} Recruitment Cycle)
+                          ({exp.recruitmentYear || 2026} Recruitment Cycle)
                         </span>
 
                         {/* Verification Badge */}
@@ -400,7 +400,7 @@ export const InterviewsSubSection: React.FC = () => {
                               : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200'
                           }`}
                         >
-                          {exp.verificationBadge}
+                          {exp.verificationBadge || 'Student Reported'}
                         </span>
 
                         {/* Outcome Badge */}
@@ -411,20 +411,20 @@ export const InterviewsSubSection: React.FC = () => {
                               : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                           }`}
                         >
-                          {exp.outcome}
+                          {exp.outcome || 'Interview Completed'}
                         </span>
                       </div>
 
                       <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold mt-0.5">
-                        {exp.roleTitle} • {exp.recruitmentType}
+                        {exp.roleTitle || 'Candidate'} • {exp.recruitmentType || 'On-Campus TPO'}
                       </p>
 
                       <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1">
-                        <span>Contributed by {exp.isAnonymous ? 'Anonymous Candidate' : exp.authorName}</span>
+                        <span>Contributed by {exp.isAnonymous ? 'Anonymous Candidate' : (exp.authorName || 'Candidate')}</span>
                         <span>•</span>
-                        <span>Batch {exp.authorBatch}</span>
+                        <span>Batch {exp.authorBatch || '2026'}</span>
                         <span>•</span>
-                        <span>Submitted {exp.submissionDate}</span>
+                        <span>Submitted {exp.submissionDate || 'Recently'}</span>
                       </div>
                     </div>
                   </div>
@@ -440,7 +440,7 @@ export const InterviewsSubSection: React.FC = () => {
                           : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200'
                       }`}
                     >
-                      {exp.overallDifficulty} Difficulty
+                      {exp.overallDifficulty || 'Medium'} Difficulty
                     </span>
 
                     <button
@@ -457,11 +457,11 @@ export const InterviewsSubSection: React.FC = () => {
                 {isExpanded && (
                   <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
                     <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]">
-                      Round-by-Round Breakdown ({exp.roundsBreakdown.length} Rounds)
+                      Round-by-Round Breakdown ({(exp.roundsBreakdown || []).length} Rounds)
                     </h4>
 
                     <div className="space-y-3">
-                      {exp.roundsBreakdown.map((rnd) => (
+                      {(exp.roundsBreakdown || []).map((rnd) => (
                         <div
                           key={rnd.roundNumber}
                           className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 space-y-2"
@@ -503,7 +503,7 @@ export const InterviewsSubSection: React.FC = () => {
                         <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] block">
                           Recommended Preparation Resources:
                         </span>
-                        {exp.studyMaterialsRecommended.map((mat, i) => (
+                        {(exp.studyMaterialsRecommended || []).map((mat, i) => (
                           <p key={i} className="text-slate-600 dark:text-slate-400 text-[11px]">• {mat}</p>
                         ))}
                       </div>
@@ -512,7 +512,7 @@ export const InterviewsSubSection: React.FC = () => {
                         <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] block">
                           Candidate Revision Checklist:
                         </span>
-                        {exp.preparationChecklist.map((chk, i) => (
+                        {(exp.preparationChecklist || []).map((chk, i) => (
                           <p key={i} className="text-slate-600 dark:text-slate-400 text-[11px]">• {chk}</p>
                         ))}
                       </div>
@@ -543,7 +543,7 @@ export const InterviewsSubSection: React.FC = () => {
                     }`}
                   >
                     <ThumbsUp className="w-3.5 h-3.5" />
-                    <span>Helpful ({exp.helpfulCount + (isHelpful ? 1 : 0)})</span>
+                    <span>Helpful ({(exp.helpfulCount || 0) + (isHelpful ? 1 : 0)})</span>
                   </button>
 
                   <button
