@@ -77,6 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     defaultSub?: string;
+    badge?: string;
     subItems?: { id: string; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string }[];
   }[] = [
     {
@@ -93,11 +94,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       subItems: [
         { id: 'profile', label: 'Profile & Academics', icon: GraduationCap },
         { id: 'skills', label: 'Verified Skills', icon: ShieldCheck, badge: `${skills.filter(s => s.verified).length || skills.length}` },
-        { id: 'resume', label: 'ATS Resume Builder', icon: FileText, badge: '92 ATS' },
         { id: 'assessments', label: 'Assessments', icon: Award, badge: '4' },
         { id: 'career-prep', label: 'Career Prep & Gaps', icon: TrendingUp },
         { id: 'interview-studio', label: 'AI Interview Studio', icon: Bot, badge: 'AI Live' }
       ]
+    },
+    {
+      id: 'resume',
+      label: 'ATS Resume Builder',
+      icon: FileText,
+      defaultSub: 'resume',
+      badge: '92 ATS'
     },
     {
       id: 'explore',
@@ -329,6 +336,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
 
                   {(!isSidebarCollapsed || mobileOpen) && (
                     <div className="flex items-center space-x-1.5 shrink-0">
+                      {item.badge && (
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                            isActiveSection
+                              ? 'bg-brand-600 text-white shadow-xs'
+                              : 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300 border border-brand-200/60'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
                       {isActiveSection && (
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-600 dark:bg-brand-400" />
                       )}

@@ -13,7 +13,8 @@ import {
   GraduationCap,
   Menu,
   X,
-  Gamepad2
+  Gamepad2,
+  FileText
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection } from '../../types';
@@ -54,6 +55,12 @@ export const Header: React.FC = () => {
       label: 'My Career',
       icon: UserCheck,
       defaultSub: 'profile'
+    },
+    {
+      id: 'resume',
+      label: 'ATS Resume',
+      icon: FileText,
+      defaultSub: 'resume'
     },
     {
       id: 'explore',

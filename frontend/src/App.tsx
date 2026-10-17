@@ -42,6 +42,9 @@ export const AppContent: React.FC = () => {
       case 'dashboard':
         return <DashboardPage />;
 
+      case 'resume':
+        return <ResumeSubSection />;
+
       case 'career':
         switch (currentSubSection) {
           case 'skills':

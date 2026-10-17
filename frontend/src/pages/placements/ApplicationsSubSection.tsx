@@ -605,7 +605,7 @@ export const ApplicationsSubSection: React.FC = () => {
                 </h4>
                 <button
                   onClick={() => {
-                    setCurrentSection('career');
+                    setCurrentSection('resume');
                     setCurrentSubSection('resume');
                   }}
                   className="text-[11px] font-semibold text-brand-600 hover:underline flex items-center gap-1"
