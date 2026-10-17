@@ -47,8 +47,7 @@ import { ConnectFeed } from './components/ConnectFeed';
 import { CommunitiesTab } from './components/CommunitiesTab';
 import { MentorsTab } from './components/MentorsTab';
 import { ChallengesTab } from './components/ChallengesTab';
-
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+import { API_BASE } from '../../config/api';
 
 export const StudentConnectPage: React.FC = () => {
   const { currentSubSection, setCurrentSubSection, studentProfile } = useApp();

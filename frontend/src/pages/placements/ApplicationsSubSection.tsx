@@ -28,6 +28,7 @@ import {
   Send,
   Plus
 } from 'lucide-react';
+import { API_BASE } from '../../config/api';
 import { useApp } from '../../context/AppContext';
 import { Application, ApplicationStatus } from '../../types';
 
@@ -53,7 +54,7 @@ export const ApplicationsSubSection: React.FC = () => {
   const [attachWarning, setAttachWarning] = useState<string | null>(null);
 
   React.useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/v1/resumes')
+    fetch(`${API_BASE}/resumes`)
       .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) setUserResumes(data);
@@ -63,7 +64,7 @@ export const ApplicationsSubSection: React.FC = () => {
 
   const handleAttachResume = async (appId: string, resumeId: string) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/resumes/applications/${appId}/attach-resume?resume_id=${resumeId}`, {
+      const res = await fetch(`${API_BASE}/resumes/applications/${appId}/attach-resume?resume_id=${resumeId}`, {
         method: 'POST'
       });
       if (res.ok) {

@@ -46,8 +46,7 @@ import {
   InterviewFinalSummary,
   VisionSummary
 } from '../../types';
-
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+import { API_BASE } from '../../config/api';
 
 interface SpeechArchitectureStatus {
   active_stt: {

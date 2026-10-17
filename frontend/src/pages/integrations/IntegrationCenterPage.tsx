@@ -30,8 +30,7 @@ import {
   IntegrationStatusType,
   GitHubDataResponse
 } from '../../types';
-
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+import { API_BASE } from '../../config/api';
 
 const GitHubIcon: React.FC<{ className?: string }> = ({ className = 'w-6 h-6' }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

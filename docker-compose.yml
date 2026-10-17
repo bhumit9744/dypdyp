@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: placement_hub_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - ENVIRONMENT=production
+      - DATABASE_URL=sqlite:///./placement_hub.db
+    env_file:
+      - ./backend/.env
+    volumes:
+      - backend_db:/app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE=/api/v1
+    container_name: placement_hub_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  backend_db:

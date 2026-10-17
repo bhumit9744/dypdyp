@@ -31,7 +31,7 @@ const LinkedinIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3
   </svg>
 );
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+import { API_BASE } from '../../config/api';
 
 interface JarvisMessage {
   id: string;

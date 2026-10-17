@@ -47,9 +47,9 @@ interface GuidanceContextType {
   isLoading: boolean;
 }
 
-const GuidanceContext = createContext<GuidanceContextType | undefined>(undefined);
+import { API_BASE } from '../../../../config/api';
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+const GuidanceContext = createContext<GuidanceContextType | undefined>(undefined);
 
 export const GuidanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { studentProfile, skills, setCurrentSubSection } = useApp();

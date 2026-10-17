@@ -39,8 +39,7 @@ import {
   ProviderAuditReport
 } from '../../types';
 import { ResumeVersionSummary } from '../../types/resume';
-
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+import { API_BASE } from '../../config/api';
 
 export const OpportunitiesPage: React.FC = () => {
   // Main listings state
