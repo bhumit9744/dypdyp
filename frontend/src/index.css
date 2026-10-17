@@ -266,3 +266,94 @@
   animation: floatSlow 3.5s ease-in-out infinite;
 }
 
+/* -------------------------------------------------------------
+ * Voice Vibration Waveform Keyframes & Utilities
+ * ------------------------------------------------------------- */
+@keyframes voiceVibrate1 {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+@keyframes voiceVibrate2 {
+  0%, 100% { height: 8px; }
+  50% { height: 22px; }
+}
+@keyframes voiceVibrate3 {
+  0%, 100% { height: 5px; }
+  50% { height: 26px; }
+}
+@keyframes voiceVibrate4 {
+  0%, 100% { height: 10px; }
+  50% { height: 19px; }
+}
+@keyframes voiceVibrate5 {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}
+
+.animate-voice-bar-1 {
+  animation: voiceVibrate1 0.75s ease-in-out infinite;
+}
+.animate-voice-bar-2 {
+  animation: voiceVibrate2 0.65s ease-in-out 0.12s infinite;
+}
+.animate-voice-bar-3 {
+  animation: voiceVibrate3 0.85s ease-in-out 0.24s infinite;
+}
+.animate-voice-bar-4 {
+  animation: voiceVibrate4 0.7s ease-in-out 0.18s infinite;
+}
+.animate-voice-bar-5 {
+  animation: voiceVibrate5 0.8s ease-in-out 0.3s infinite;
+}
+
+/* -------------------------------------------------------------
+ * AI Bot Speaker Acoustic Ripple & Pulse Animations
+ * ------------------------------------------------------------- */
+@keyframes speakerRipple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.65);
+    opacity: 0;
+  }
+}
+
+@keyframes speakerPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.25), 0 0 50px rgba(6, 182, 212, 0.15);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 55px rgba(16, 185, 129, 0.55), 0 0 90px rgba(6, 182, 212, 0.35);
+  }
+}
+
+@keyframes botEyeBlink {
+  0%, 90%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.animate-speaker-ripple-1 {
+  animation: speakerRipple 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+.animate-speaker-ripple-2 {
+  animation: speakerRipple 2.2s cubic-bezier(0, 0.2, 0.8, 1) 0.7s infinite;
+}
+.animate-speaker-ripple-3 {
+  animation: speakerRipple 2.2s cubic-bezier(0, 0.2, 0.8, 1) 1.4s infinite;
+}
+.animate-speaker-pulse {
+  animation: speakerPulse 1.3s ease-in-out infinite;
+}
+.animate-bot-eye {
+  animation: botEyeBlink 4s ease-in-out infinite;
+}
+
+

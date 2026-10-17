@@ -156,7 +156,7 @@ export const InterviewStudioSubSection: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<InterviewSession | null>(null);
   const [activeTurn, setActiveTurn] = useState<InterviewTurn | null>(null);
   const [interviewerState, setInterviewerState] = useState<'idle' | 'speaking' | 'listening' | 'evaluating'>('idle');
-  const [interviewerPersona, setInterviewerPersona] = useState<'sarah' | 'alex' | 'nova' | 'jarvis'>('sarah');
+  const [interviewerPersona, setInterviewerPersona] = useState<'sarah' | 'alex' | 'nova' | 'jarvis'>('jarvis');
   const [turnTranscript, setTurnTranscript] = useState<string>('');
   const [interimTranscript, setInterimTranscript] = useState<string>('');
   const [sttLanguage, setSttLanguage] = useState<string>(() => {
@@ -193,12 +193,17 @@ export const InterviewStudioSubSection: React.FC = () => {
     }
   };
 
-  // DOM References
+  // DOM References & Speech Recognition State
   const videoPreviewRef = useRef<HTMLVideoElement | null>(null);
   const recognitionRef = useRef<any>(null);
   const visionIntervalRef = useRef<any>(null);
   const isListeningActiveRef = useRef<boolean>(false);
   const restartTimeoutRef = useRef<any>(null);
+  const committedTranscriptRef = useRef<string>('');
+  const interimTranscriptRef = useRef<string>('');
+  const ttsSafetyTimeoutRef = useRef<any>(null);
+  const [sttErrorStatus, setSttErrorStatus] = useState<string | null>(null);
+  const [isRecognizing, setIsRecognizing] = useState<boolean>(false);
 
   const verifiedSkills = skills.filter(s => s.verified);
 
@@ -242,6 +247,10 @@ export const InterviewStudioSubSection: React.FC = () => {
   const endCallSafely = () => {
     stopSpeechRecognition();
     if (visionIntervalRef.current) clearInterval(visionIntervalRef.current);
+    if (ttsSafetyTimeoutRef.current) {
+      clearTimeout(ttsSafetyTimeoutRef.current);
+      ttsSafetyTimeoutRef.current = null;
+    }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     window.dispatchEvent(new CustomEvent('jarvis-resume-listening'));
     leave();
@@ -254,6 +263,10 @@ export const InterviewStudioSubSection: React.FC = () => {
     return () => {
       stopSpeechRecognition();
       if (visionIntervalRef.current) clearInterval(visionIntervalRef.current);
+      if (ttsSafetyTimeoutRef.current) {
+        clearTimeout(ttsSafetyTimeoutRef.current);
+        ttsSafetyTimeoutRef.current = null;
+      }
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       window.dispatchEvent(new CustomEvent('jarvis-resume-listening'));
     };
@@ -294,16 +307,19 @@ export const InterviewStudioSubSection: React.FC = () => {
       return;
     }
 
-    // Clear any restart timers and abort stale recognizers
+    // Clear any restart timers and abort stale recognizers cleanly
     if (restartTimeoutRef.current) {
       clearTimeout(restartTimeoutRef.current);
       restartTimeoutRef.current = null;
     }
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.onend = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.stop();
+        const old = recognitionRef.current;
+        old.onstart = null;
+        old.onresult = null;
+        old.onerror = null;
+        old.onend = null;
+        old.abort();
       } catch (e) {}
       recognitionRef.current = null;
     }
@@ -311,58 +327,104 @@ export const InterviewStudioSubSection: React.FC = () => {
     // Yield Jarvis microphone to prevent dual-recognizer audio buffer starvation
     window.dispatchEvent(new CustomEvent('jarvis-pause-listening'));
     isListeningActiveRef.current = true;
+    setSttErrorStatus(null);
+
+    const targetLang = langOverride || sttLanguage || 'en-IN';
 
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1; // Instant single-hypothesis resolution (<100ms)
-      const targetLang = langOverride || sttLanguage || 'en-IN';
       recognition.lang = targetLang;
 
       recognition.onstart = () => {
+        setIsRecognizing(true);
         setInterviewerState('listening');
+        setSttErrorStatus(null);
       };
 
       recognition.onresult = (event: any) => {
-        let interim = '';
-        let finalChunk = '';
+        let currentInterim = '';
+        let finalizedFromEvent = '';
+
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const text = event.results[i][0]?.transcript || '';
-          if (event.results[i].isFinal) {
-            finalChunk += text + ' ';
+          const result = event.results[i];
+          const transcript = result[0]?.transcript || '';
+          if (result.isFinal) {
+            finalizedFromEvent += transcript + ' ';
           } else {
-            interim += text;
+            currentInterim += transcript;
           }
         }
-        if (finalChunk) {
-          setTurnTranscript(prev => (prev ? prev.trim() + ' ' + finalChunk.trim() : finalChunk.trim()));
+
+        if (finalizedFromEvent.trim()) {
+          const chunk = finalizedFromEvent.trim();
+          committedTranscriptRef.current = committedTranscriptRef.current
+            ? `${committedTranscriptRef.current.trim()} ${chunk}`
+            : chunk;
+          setTurnTranscript(committedTranscriptRef.current);
+          setTextAnswer(committedTranscriptRef.current);
         }
-        setInterimTranscript(interim);
+
+        interimTranscriptRef.current = currentInterim;
+        setInterimTranscript(currentInterim);
       };
 
       recognition.onerror = (e: any) => {
-        if (e.error === 'not-allowed') {
-          console.warn('Microphone permission denied for speech recognition');
+        const errType = e.error || 'unknown';
+        console.warn(`[SpeechRecognition] event: ${errType}`, e);
+
+        if (errType === 'not-allowed' || errType === 'service-not-allowed') {
+          setSttErrorStatus('Microphone permission blocked. Please enable mic in browser settings.');
           setInputMode('text_fallback');
           isListeningActiveRef.current = false;
+          setIsRecognizing(false);
           window.dispatchEvent(new CustomEvent('jarvis-resume-listening'));
+          return;
+        }
+
+        if (errType === 'network') {
+          setSttErrorStatus('Speech cloud service network latency. Select "US English (Lowest Latency)" or tap Restart Mic.');
+        } else if (errType === 'audio-capture') {
+          setSttErrorStatus('No microphone audio captured. Check system microphone selection.');
         }
       };
 
       recognition.onend = () => {
-        // Keep listening smoothly if turn is still active
+        setIsRecognizing(false);
+
+        // Commit any pending interim words so they are NEVER lost on pauses!
+        if (interimTranscriptRef.current.trim()) {
+          const chunk = interimTranscriptRef.current.trim();
+          committedTranscriptRef.current = committedTranscriptRef.current
+            ? `${committedTranscriptRef.current.trim()} ${chunk}`
+            : chunk;
+          setTurnTranscript(committedTranscriptRef.current);
+          setTextAnswer(committedTranscriptRef.current);
+          interimTranscriptRef.current = '';
+          setInterimTranscript('');
+        }
+
+        // Clean up this finished instance
+        try {
+          recognition.onstart = null;
+          recognition.onresult = null;
+          recognition.onerror = null;
+          recognition.onend = null;
+        } catch (_) {}
+        if (recognitionRef.current === recognition) {
+          recognitionRef.current = null;
+        }
+
+        // In Chrome/WebKit, an ended SpeechRecognition instance CANNOT be restarted with .start().
+        // Must ALWAYS instantiate a fresh new SpeechRecognition() instance while listening is active.
         if (isListeningActiveRef.current) {
           restartTimeoutRef.current = setTimeout(() => {
             if (isListeningActiveRef.current) {
-              try {
-                recognition.start();
-              } catch (e) {
-                // If restarting instance fails, rebuild recognizer instance
-                startSpeechRecognition(targetLang);
-              }
+              startSpeechRecognition(targetLang);
             }
-          }, 80);
+          }, 40);
         }
       };
 
@@ -370,23 +432,31 @@ export const InterviewStudioSubSection: React.FC = () => {
       recognitionRef.current = recognition;
     } catch (err) {
       console.warn('Speech recognition start failed:', err);
-      setInputMode('text_fallback');
-      isListeningActiveRef.current = false;
-      window.dispatchEvent(new CustomEvent('jarvis-resume-listening'));
+      if (isListeningActiveRef.current) {
+        restartTimeoutRef.current = setTimeout(() => {
+          if (isListeningActiveRef.current) {
+            startSpeechRecognition(targetLang);
+          }
+        }, 250);
+      }
     }
   };
 
   const stopSpeechRecognition = () => {
     isListeningActiveRef.current = false;
+    setIsRecognizing(false);
     if (restartTimeoutRef.current) {
       clearTimeout(restartTimeoutRef.current);
       restartTimeoutRef.current = null;
     }
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.onend = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.stop();
+        const old = recognitionRef.current;
+        old.onstart = null;
+        old.onresult = null;
+        old.onerror = null;
+        old.onend = null;
+        old.abort();
       } catch (e) {}
       recognitionRef.current = null;
     }
@@ -406,6 +476,11 @@ export const InterviewStudioSubSection: React.FC = () => {
   // Text-to-Speech: Native Vocalization with Lipsync Synchronizer
   // -------------------------------------------------------------------------
   const speakQuestion = (text: string, onComplete?: () => void) => {
+    if (ttsSafetyTimeoutRef.current) {
+      clearTimeout(ttsSafetyTimeoutRef.current);
+      ttsSafetyTimeoutRef.current = null;
+    }
+
     if (!('speechSynthesis' in window) || isAudioMuted) {
       setInterviewerState('listening');
       startSpeechRecognition();
@@ -430,21 +505,37 @@ export const InterviewStudioSubSection: React.FC = () => {
       utterance.voice = matchedVoice;
     }
 
+    let transitioned = false;
+    const transitionToListening = () => {
+      if (transitioned) return;
+      transitioned = true;
+      if (ttsSafetyTimeoutRef.current) {
+        clearTimeout(ttsSafetyTimeoutRef.current);
+        ttsSafetyTimeoutRef.current = null;
+      }
+      setInterviewerState('listening');
+      startSpeechRecognition();
+      if (onComplete) onComplete();
+    };
+
     utterance.onstart = () => {
       setInterviewerState('speaking');
     };
 
     utterance.onend = () => {
-      setInterviewerState('listening');
-      startSpeechRecognition();
-      if (onComplete) onComplete();
+      transitionToListening();
     };
 
     utterance.onerror = () => {
-      setInterviewerState('listening');
-      startSpeechRecognition();
-      if (onComplete) onComplete();
+      transitionToListening();
     };
+
+    // Chrome speech synthesis freeze safety fallback: transition after estimated speaking duration
+    const words = text.split(/\s+/).length;
+    const maxDurationMs = Math.max(4000, Math.min(25000, (words / 2.2) * 1000 + 3000));
+    ttsSafetyTimeoutRef.current = setTimeout(() => {
+      transitionToListening();
+    }, maxDurationMs);
 
     window.speechSynthesis.speak(utterance);
   };
@@ -452,6 +543,10 @@ export const InterviewStudioSubSection: React.FC = () => {
   const stopInterviewerSpeaking = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
+    }
+    if (ttsSafetyTimeoutRef.current) {
+      clearTimeout(ttsSafetyTimeoutRef.current);
+      ttsSafetyTimeoutRef.current = null;
     }
     setInterviewerState('listening');
     startSpeechRecognition();
@@ -599,6 +694,9 @@ export const InterviewStudioSubSection: React.FC = () => {
     setTurnTranscript('');
     setInterimTranscript('');
     setTextAnswer('');
+    committedTranscriptRef.current = '';
+    interimTranscriptRef.current = '';
+    setSttErrorStatus(null);
 
     try {
       const res = await fetch(`${API_BASE}/interview/sessions/${sessionId}/next-question`, {
@@ -638,9 +736,13 @@ export const InterviewStudioSubSection: React.FC = () => {
   const handleSubmitAnswer = async () => {
     if (!currentSession || !activeTurn) return;
 
+    const spoken = (committedTranscriptRef.current || turnTranscript).trim();
+    const interim = (interimTranscriptRef.current || interimTranscript).trim();
+    const combinedVoice = `${spoken} ${interim}`.trim();
+
     const answerToSubmit = inputMode === 'voice'
-      ? (turnTranscript + (interimTranscript ? ' ' + interimTranscript : '')).trim()
-      : textAnswer.trim();
+      ? (combinedVoice || textAnswer.trim())
+      : (textAnswer.trim() || combinedVoice);
 
     if (!answerToSubmit) {
       alert('Please provide an answer via microphone transcription or text input before submitting.');
@@ -1395,18 +1497,11 @@ export const InterviewStudioSubSection: React.FC = () => {
               state={interviewerState === 'idle' ? (mediaPhase === 'ready' ? 'ready' : 'disconnected') : interviewerState}
               persona={interviewerPersona}
               onPersonaChange={setInterviewerPersona}
-              interviewerName={
-                interviewerPersona === 'sarah'
-                  ? 'Sarah Jenkins'
-                  : interviewerPersona === 'alex'
-                  ? 'Alex Vance'
-                  : interviewerPersona === 'nova'
-                  ? 'Nova 3D Digital Human'
-                  : 'JARVIS Core'
-              }
-              interviewerRole={currentSession?.role_target ? `${currentSession.role_target} Assessment` : 'Technical Evaluation'}
+              interviewerName="AI Technical Interviewer"
+              interviewerRole={currentSession?.role_target ? `${currentSession.role_target} Assessment` : 'Autonomous AI Technical Evaluator'}
               callDurationSeconds={callElapsedSeconds}
               onSkipAudio={stopInterviewerSpeaking}
+              micLevel={micVolume}
               className="w-full shadow-md"
             >
               {/* Student PIP Camera Preview (Docked Bottom-Right) */}
@@ -1493,7 +1588,7 @@ export const InterviewStudioSubSection: React.FC = () => {
                   <div className={`p-1.5 rounded-lg ${interviewerState === 'listening' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
                     <Mic className={`w-4 h-4 ${interviewerState === 'listening' ? 'animate-pulse text-emerald-600' : ''}`} />
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <span className="font-bold text-xs text-slate-900 dark:text-white">
                       Your Response
                     </span>
@@ -1503,33 +1598,57 @@ export const InterviewStudioSubSection: React.FC = () => {
                         Listening Live
                       </span>
                     )}
+                    {micLevel > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title={`Microphone input active (level: ${micLevel}%)`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Mic {micLevel}%
+                      </span>
+                    ) : interviewerState === 'listening' ? (
+                      <span className="text-[10px] text-slate-400 hidden sm:inline">Mic Ready</span>
+                    ) : null}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Language / Dialect Selector for lowest cloud latency */}
+                <div className="flex items-center gap-1.5">
+                  {/* Language / Dialect Selector with latency descriptions */}
                   <div className="flex items-center gap-1 text-[11px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                     <Globe className="w-3 h-3 text-slate-400 shrink-0" />
                     <select
                       value={sttLanguage}
                       onChange={(e) => handleLanguageChange(e.target.value)}
                       className="bg-transparent text-[11px] font-medium text-slate-700 dark:text-slate-300 border-none outline-none cursor-pointer pr-1"
-                      title="Select speech recognition dialect for lowest latency"
+                      title="Select speech recognition dialect. US English offers the lowest cloud roundtrip latency (<100ms)."
                     >
-                      <option value="en-IN">🇮🇳 Indian English (Fastest)</option>
-                      <option value="en-US">🇺🇸 US English</option>
+                      <option value="en-IN">🇮🇳 Indian English</option>
+                      <option value="en-US">🇺🇸 US English (Lowest Latency)</option>
                       <option value="en-GB">🇬🇧 UK English</option>
                     </select>
                   </div>
+
+                  {/* Instant Mic Restart CTA if user senses latency or pause */}
+                  <button
+                    type="button"
+                    onClick={() => startSpeechRecognition()}
+                    title="Reconnect microphone speech recognizer stream"
+                    className="p-1 text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
 
                   <button
                     type="button"
                     onClick={() => {
                       if (inputMode === 'voice') {
                         stopSpeechRecognition();
+                        const currentVal = (committedTranscriptRef.current || turnTranscript) + (interimTranscript ? ' ' + interimTranscript : '');
+                        setTextAnswer(currentVal.trim());
                         setInputMode('text_fallback');
                       } else {
                         setInputMode('voice');
+                        if (textAnswer.trim()) {
+                          committedTranscriptRef.current = textAnswer.trim();
+                          setTurnTranscript(textAnswer.trim());
+                        }
                         if (interviewerState === 'listening') {
                           startSpeechRecognition();
                         }
@@ -1542,50 +1661,81 @@ export const InterviewStudioSubSection: React.FC = () => {
                 </div>
               </div>
 
+              {/* STT Status Alert if network or mic blocked */}
+              {sttErrorStatus && (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span className="truncate">{sttErrorStatus}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => startSpeechRecognition()}
+                    className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline shrink-0 px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
               {inputMode === 'voice' ? (
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 min-h-[120px] max-h-[220px] overflow-y-auto text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed flex flex-col justify-between">
-                  <div>
-                    {turnTranscript || interimTranscript ? (
-                      <p className="leading-relaxed">
-                        <span className="text-slate-900 dark:text-slate-100 font-medium">
-                          {turnTranscript}
-                        </span>
-                        {interimTranscript && (
-                          <span className="ml-1 text-brand-600 dark:text-brand-400 font-normal italic bg-brand-50/60 dark:bg-brand-950/60 px-1 py-0.5 rounded">
-                            {interimTranscript}
-                          </span>
-                        )}
-                      </p>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400 space-y-1">
-                        {interviewerState === 'listening' ? (
-                          <>
-                            <div className="flex items-center gap-1.5 text-brand-600 dark:text-brand-400">
-                              <Zap className="w-3.5 h-3.5 animate-bounce" />
-                              <span className="text-xs font-semibold">Real-time speech recognition active</span>
-                            </div>
-                            <span className="text-[11px] text-slate-400">
-                              Speak into your microphone. Words will appear instantly (&lt;100ms latency).
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-xs italic">Awaiting next turn…</span>
-                        )}
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 min-h-[140px] max-h-[240px] flex flex-col justify-between space-y-2">
+                  <div className="relative flex-1">
+                    <textarea
+                      rows={4}
+                      value={turnTranscript + (interimTranscript ? ' ' + interimTranscript : '')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        committedTranscriptRef.current = val;
+                        setTurnTranscript(val);
+                        setInterimTranscript('');
+                      }}
+                      placeholder={
+                        interviewerState === 'listening'
+                          ? "Speak into your microphone. Words appear instantly, or click here to type/edit directly…"
+                          : "Awaiting next turn…"
+                      }
+                      className="w-full h-full bg-transparent border-none outline-none text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed resize-none placeholder:text-slate-400 font-normal"
+                    />
+
+                    {interimTranscript && (
+                      <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
+                        <Zap className="w-3 h-3 animate-bounce text-brand-500 shrink-0" />
+                        <span className="italic">Streaming: "{interimTranscript}"</span>
                       </div>
                     )}
                   </div>
 
-                  {(turnTranscript || interimTranscript) && (
-                    <div className="mt-3 pt-2 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
-                      <span className="flex items-center gap-1">
+                  <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
                         <Zap className="w-3 h-3 text-emerald-500" />
-                        Live streaming • {sttLanguage === 'en-IN' ? 'Indian English Model' : sttLanguage}
+                        {sttLanguage === 'en-IN' ? 'Indian English Model' : sttLanguage === 'en-US' ? 'US English (Lowest Latency)' : sttLanguage}
                       </span>
+                      <span>•</span>
+                      <span>
+                        {(turnTranscript + (interimTranscript ? ' ' + interimTranscript : '')).trim().split(/\s+/).filter(Boolean).length} words
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startSpeechRecognition()}
+                        className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 flex items-center gap-1 font-medium"
+                        title="Restart speech recognition socket if latency is observed"
+                      >
+                        <RefreshCw className="w-2.5 h-2.5" />
+                        Restart Mic
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
+                          committedTranscriptRef.current = '';
+                          interimTranscriptRef.current = '';
                           setTurnTranscript('');
                           setInterimTranscript('');
+                          setTextAnswer('');
                         }}
                         className="text-slate-400 hover:text-red-500 hover:underline flex items-center gap-1 font-medium"
                       >
@@ -1593,7 +1743,7 @@ export const InterviewStudioSubSection: React.FC = () => {
                         Clear
                       </button>
                     </div>
-                  )}
+                  </div>
                 </div>
               ) : (
                 <textarea

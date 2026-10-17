@@ -48,6 +48,9 @@ export const ResumeSubSection: React.FC = () => {
   // Canvas State
   const [zoom, setZoom] = useState<number>(90);
   const [isEditing, setIsEditing] = useState<boolean>(true);
+  const [activeEditorTab, setActiveEditorTab] = useState<'tailor' | 'format' | 'sections' | 'truth' | 'versions'>('tailor');
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [mobileView, setMobileView] = useState<'resume' | 'editor'>('resume');
 
   // Undo / Redo history stack
   const [history, setHistory] = useState<ResumeContent[]>([]);
@@ -536,10 +539,13 @@ export const ResumeSubSection: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[86vh] min-h-[720px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden select-none">
+    <div className="flex flex-col h-[88vh] min-h-[720px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden select-none relative">
       {/* Top Professional Toolbar */}
       <TopToolbar
         resume={activeResume}
+        resumes={resumes}
+        activeResumeId={activeResumeId}
+        onSelectResume={handleSelectResume}
         zoom={zoom}
         setZoom={setZoom}
         canUndo={historyIndex > 0}
@@ -550,65 +556,130 @@ export const ResumeSubSection: React.FC = () => {
         isEditing={isEditing}
         setIsEditing={setIsEditing}
         onRenameTitle={handleRenameTitle}
-        onOpenTailorModal={() => {
-          // Switch to tailor tab in right sidebar
-          const el = document.querySelector('[data-tab="tailor"]');
-          if (el) (el as HTMLElement).click();
+        activeTab={activeEditorTab}
+        onTabChange={(tab) => {
+          setActiveEditorTab(tab);
+          setMobileView('editor');
         }}
-        onOpenTruthModal={() => {
-          const el = document.querySelector('[data-tab="truth"]');
-          if (el) (el as HTMLElement).click();
-        }}
-        onOpenScoreModal={() => {
-          const el = document.querySelector('[data-tab="score"]');
-          if (el) (el as HTMLElement).click();
-        }}
+        onToggleVersionsDrawer={() => setIsDrawerOpen((v) => !v)}
         onOpenCompareModal={() => setIsCompareOpen(true)}
         onExportPdf={handleExportPdf}
         onOpenUploadModal={() => setIsUploadOpen(true)}
       />
 
-      {/* Main Studio Body: Left Sidebar + Center Canvas + Right Sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
-        <LeftSidebar
-          resumes={resumes}
-          activeResumeId={activeResumeId}
-          onSelectResume={handleSelectResume}
-          onCreateNewVersion={handleCreateNewVersion}
-          onDuplicateResume={handleDuplicateResume}
-          onArchiveResume={handleArchiveResume}
-          onRestoreResume={handleRestoreResume}
-          sectionsOrder={activeResume.sections_order}
-          onReorderSections={handleReorderSections}
-          selectedTemplateId={activeResume.template_id}
-          onSelectTemplate={handleSelectTemplate}
-          alumniExamples={alumniExamples}
-          onUseAlumniTemplate={handleSelectTemplate}
-        />
+      {/* Mobile/Tablet View Switcher (< lg) */}
+      <div className="lg:hidden flex items-center justify-center p-2 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 gap-2 shrink-0">
+        <button
+          onClick={() => setMobileView('resume')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+            mobileView === 'resume'
+              ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          Resume Preview (70%)
+        </button>
+        <button
+          onClick={() => setMobileView('editor')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+            mobileView === 'editor'
+              ? 'bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          Editor Panel (30%)
+        </button>
+      </div>
 
-        {/* Center Live A4 Document Canvas */}
-        <ResumeCanvas
-          resume={activeResume}
-          zoom={zoom}
-          isEditing={isEditing}
-          onUpdateContent={handleUpdateContent}
-          pageCount={calculateEstimatedPages()}
-        />
+      {/* Main Studio Body: 70% Resume Canvas : 30% Unified Editor */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* 70% Resume Canvas Container */}
+        <div
+          className={`w-full lg:w-[70%] lg:basis-[70%] h-full flex flex-col overflow-hidden relative ${
+            mobileView === 'editor' ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
+          <ResumeCanvas
+            resume={activeResume}
+            zoom={zoom}
+            isEditing={isEditing}
+            onUpdateContent={handleUpdateContent}
+            pageCount={calculateEstimatedPages()}
+            onOpenDrawer={() => setIsDrawerOpen(true)}
+            versionCount={resumes.length}
+          />
+        </div>
 
-        {/* Right Sidebar */}
-        <RightSidebar
-          styling={activeResume.styling_config}
-          onUpdateStyling={handleUpdateStyling}
-          claims={activeResume.evidence_links}
-          scoringReport={activeResume.scoring_report}
-          onRunGeminiTailor={handleRunGeminiTailor}
-          isTailoring={isTailoring}
-          tailoringReport={tailoringReport}
-          onApplyProposals={handleApplyProposals}
-          availableJobs={jobs}
-          defaultRole={activeResume.target_role}
-        />
+        {/* 30% Unified Editor Panel */}
+        <div
+          className={`w-full lg:w-[30%] lg:basis-[30%] h-full flex flex-col shrink-0 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 z-10 ${
+            mobileView === 'resume' ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
+          <RightSidebar
+            activeTab={activeEditorTab}
+            onTabChange={setActiveEditorTab}
+            styling={activeResume.styling_config}
+            onUpdateStyling={handleUpdateStyling}
+            selectedTemplateId={activeResume.template_id}
+            onSelectTemplate={handleSelectTemplate}
+            sectionsOrder={activeResume.sections_order}
+            onReorderSections={handleReorderSections}
+            claims={activeResume.evidence_links}
+            scoringReport={activeResume.scoring_report}
+            onRunGeminiTailor={handleRunGeminiTailor}
+            isTailoring={isTailoring}
+            tailoringReport={tailoringReport}
+            onApplyProposals={handleApplyProposals}
+            availableJobs={jobs}
+            defaultRole={activeResume.target_role}
+            resumes={resumes}
+            activeResumeId={activeResumeId}
+            onSelectResume={handleSelectResume}
+            onCreateNewVersion={handleCreateNewVersion}
+            onDuplicateResume={handleDuplicateResume}
+            onArchiveResume={handleArchiveResume}
+            onRestoreResume={handleRestoreResume}
+            alumniExamples={alumniExamples}
+            onUseAlumniTemplate={handleSelectTemplate}
+          />
+        </div>
+
+        {/* Slide-over Drawer for All Versions & Alumni Library (Overlay) */}
+        {isDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+              onClick={() => setIsDrawerOpen(false)}
+            />
+            {/* Slide-over panel */}
+            <div className="relative z-50 w-84 sm:w-96 max-w-full h-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col border-r border-slate-200 dark:border-slate-800 animate-in slide-in-from-left duration-200">
+              <LeftSidebar
+                resumes={resumes}
+                activeResumeId={activeResumeId}
+                onSelectResume={(id) => {
+                  handleSelectResume(id);
+                  setIsDrawerOpen(false);
+                }}
+                onCreateNewVersion={handleCreateNewVersion}
+                onDuplicateResume={handleDuplicateResume}
+                onArchiveResume={handleArchiveResume}
+                onRestoreResume={handleRestoreResume}
+                sectionsOrder={activeResume.sections_order}
+                onReorderSections={handleReorderSections}
+                selectedTemplateId={activeResume.template_id}
+                onSelectTemplate={handleSelectTemplate}
+                alumniExamples={alumniExamples}
+                onUseAlumniTemplate={(tplId) => {
+                  handleSelectTemplate(tplId);
+                  setIsDrawerOpen(false);
+                }}
+                onClose={() => setIsDrawerOpen(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}

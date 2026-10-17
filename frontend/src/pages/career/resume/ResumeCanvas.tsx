@@ -1,5 +1,5 @@
 import React from 'react';
-import { ZoomIn, ZoomOut, Maximize2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, AlertTriangle, CheckCircle2, FolderOpen, Layers } from 'lucide-react';
 import { FullResumeDocument, ResumeContent } from '../../../types/resume';
 import { ResumeTemplateRenderer } from './ResumeTemplates';
 
@@ -9,6 +9,8 @@ interface ResumeCanvasProps {
   isEditing: boolean;
   onUpdateContent: (newContent: ResumeContent) => void;
   pageCount: number;
+  onOpenDrawer?: () => void;
+  versionCount?: number;
 }
 
 export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
@@ -16,32 +18,47 @@ export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
   zoom,
   isEditing,
   onUpdateContent,
-  pageCount
+  pageCount,
+  onOpenDrawer,
+  versionCount = 1
 }) => {
   return (
-    <div className="flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 p-6 flex flex-col items-center relative select-text">
-      {/* Page length guidance banner */}
-      <div className="mb-4 no-print flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-        {pageCount === 1 ? (
-          <>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="text-slate-600 dark:text-slate-300 font-medium">
-              1-Page A4 Standard — Optimal for automated ATS & campus screening
-            </span>
-          </>
-        ) : (
-          <>
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-slate-600 dark:text-slate-300 font-medium">
-              Multi-page layout detected ({pageCount} pages). Ensure critical qualifications appear on Page 1.
-            </span>
-          </>
+    <div className="w-full h-full flex-1 overflow-auto bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 flex flex-col items-center relative select-text bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px]">
+      {/* Top Page Length & Guidance Bar */}
+      <div className="mb-4 no-print flex flex-wrap items-center justify-center gap-2 max-w-full z-10">
+        {onOpenDrawer && (
+          <button
+            onClick={onOpenDrawer}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs transition-colors cursor-pointer"
+            title="Open versions and template drawer"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-brand-600" />
+            <span>Library ({versionCount})</span>
+          </button>
         )}
+
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          {pageCount === 1 ? (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                1-Page A4 Standard — Optimal for automated ATS & campus screening
+              </span>
+            </>
+          ) : (
+            <>
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                Multi-page layout ({pageCount} pages). Ensure critical highlights appear on Page 1.
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* A4 Canvas Sheet Container */}
+      {/* A4 Canvas Sheet Container with smooth zoom scaling */}
       <div
-        className="resume-zoom-wrapper transition-transform duration-150 ease-out origin-top"
+        className="resume-zoom-wrapper transition-transform duration-150 ease-out origin-top pb-28"
         style={{
           transform: `scale(${zoom / 100})`,
           width: '210mm'
@@ -49,7 +66,7 @@ export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
       >
         <div
           id="resume-print-canvas"
-          className="resume-print-container relative bg-white shadow-xl dark:shadow-2xl rounded-sm border border-slate-200/80 dark:border-slate-800 text-slate-900 overflow-hidden"
+          className="resume-print-container relative bg-white shadow-[0_15px_45px_rgba(0,0,0,0.12),0_1px_4px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-xs border border-slate-200/90 dark:border-slate-800 text-slate-900 overflow-hidden"
           style={{
             width: '210mm',
             minHeight: '297mm'
@@ -74,11 +91,11 @@ export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
 
           {/* Visual A4 Page 1 Break Indicator (297mm boundary guide) */}
           <div
-            className="absolute left-0 right-0 border-b-2 border-dashed border-red-300 pointer-events-none no-print opacity-60 flex items-center justify-end pr-4"
+            className="absolute left-0 right-0 border-b-2 border-dashed border-red-300/80 pointer-events-none no-print flex items-center justify-end pr-4 z-20"
             style={{ top: '297mm' }}
           >
             <span className="bg-red-50 text-red-600 font-mono text-[9px] px-1.5 py-0.5 rounded-t border-t border-l border-r border-red-200">
-              Page 1 End (297mm)
+              Page 1 End (297mm Standard A4)
             </span>
           </div>
         </div>
