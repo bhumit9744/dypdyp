@@ -35,12 +35,6 @@ class Settings(BaseSettings):
     OPENJARVIS_BASE_URL: str = "http://127.0.0.1:8008"
     OPENJARVIS_API_KEY: str = "jarvis_local_interview_token_987"
     OPENJARVIS_MODEL: str = "openjarvis-interview-model"
-    # Vapi Conversational Voice Agent Configuration
-    VAPI_PUBLIC_KEY: str = ""
-    VAPI_PRIVATE_KEY: str = ""
-    VAPI_ASSISTANT_ID: str = ""
-    VAPI_SERVER_SECRET: str = ""
-
     # Integration Center Providers (Read-only, credential-sanitized)
     GITHUB_TOKEN: Optional[str] = None
     GITHUB_REPOSITORY: str = "bhumit9744/dypdyp"
@@ -64,22 +58,6 @@ class Settings(BaseSettings):
     @property
     def clean_openjarvis_api_key(self) -> str:
         return (self.OPENJARVIS_API_KEY or "").strip()
-
-    @property
-    def clean_vapi_public_key(self) -> str:
-        return (self.VAPI_PUBLIC_KEY or "").strip().strip("'").strip('"')
-
-    @property
-    def clean_vapi_private_key(self) -> str:
-        return (self.VAPI_PRIVATE_KEY or "").strip().strip("'").strip('"')
-
-    @property
-    def clean_vapi_assistant_id(self) -> str:
-        return (self.VAPI_ASSISTANT_ID or "").strip().strip("'").strip('"')
-
-    @property
-    def clean_vapi_server_secret(self) -> str:
-        return (self.VAPI_SERVER_SECRET or "").strip().strip("'").strip('"')
 
     @property
     def clean_gemini_api_key(self) -> str:

@@ -88,68 +88,11 @@ export const IntegrationCenterPage: React.FC = () => {
     fetchIntegrations();
   }, []);
 
-  const getProviderFormConfig = (providerId: string) => {
-    switch (providerId) {
-      case 'google_workspace':
-        return {
-          tokenLabel: 'Google Workspace Key / Access Token',
-          tokenLinkText: 'Google Cloud Credentials ↗',
-          tokenLinkUrl: 'https://console.cloud.google.com/apis/credentials',
-          tokenPlaceholder: 'ya29.xxxxxxxxxxxxxxxxxxxx or service account key',
-          scopesText: 'Required scopes: calendar.readonly, drive.readonly, gmail.readonly',
-          repoLabel: 'Google Workspace Email or Domain',
-          repoPlaceholder: 'student@dypatil.edu',
-        };
-      case 'vercel':
-        return {
-          tokenLabel: 'Vercel Personal Access Token',
-          tokenLinkText: 'Vercel Tokens ↗',
-          tokenLinkUrl: 'https://vercel.com/account/tokens',
-          tokenPlaceholder: 'vercel_xxxxxxxxxxxxxxxxxxxx',
-          scopesText: 'Required scopes: deployments:read, projects:read',
-          repoLabel: 'Vercel Project Name (or Scope)',
-          repoPlaceholder: 'dypdyp-frontend',
-        };
-      case 'cloudflare':
-        return {
-          tokenLabel: 'Cloudflare API Token',
-          tokenLinkText: 'Cloudflare API Tokens ↗',
-          tokenLinkUrl: 'https://dash.cloudflare.com/profile/api-tokens',
-          tokenPlaceholder: 'cf_xxxxxxxxxxxxxxxxxxxx',
-          scopesText: 'Required permissions: Zone:Read, Workers:Read',
-          repoLabel: 'Account ID or Zone ID (Optional)',
-          repoPlaceholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        };
-      case 'supabase':
-        return {
-          tokenLabel: 'Supabase API / Service Key',
-          tokenLinkText: 'Supabase Settings ↗',
-          tokenLinkUrl: 'https://supabase.com/dashboard',
-          tokenPlaceholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          scopesText: 'Required permissions: database:read, auth:read, storage:read',
-          repoLabel: 'Supabase Project URL or Reference ID',
-          repoPlaceholder: 'https://xyzproject.supabase.co',
-        };
-      case 'github':
-      default:
-        return {
-          tokenLabel: 'Personal Access Token (PAT)',
-          tokenLinkText: 'Generate on GitHub ↗',
-          tokenLinkUrl: 'https://github.com/settings/tokens',
-          tokenPlaceholder: 'ghp_xxxxxxxxxxxxxxxxxxxx',
-          scopesText: 'Required scopes: repo (for private repositories) or public_repo',
-          repoLabel: 'Target Repository (owner/repo)',
-          repoPlaceholder: 'bhumit9744/dypdyp',
-        };
-    }
-  };
-
   // Connect Handler
   const handleOpenConnect = (card: IntegrationProviderCard) => {
     setSelectedProvider(card);
     setTokenInput('');
-    const formConfig = getProviderFormConfig(card.id);
-    setRepoInput(card.repository || (card.id === 'github' ? 'bhumit9744/dypdyp' : ''));
+    setRepoInput(card.repository || 'bhumit9744/dypdyp');
     setConnectError(null);
     setConnectModalOpen(true);
   };
@@ -616,87 +559,82 @@ export const IntegrationCenterPage: React.FC = () => {
               </p>
             </div>
 
-            {(() => {
-              const cfg = getProviderFormConfig(selectedProvider.id);
-              return (
-                <form onSubmit={handleConnectSubmit} className="space-y-4">
-                  {/* Token Input */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>{cfg.tokenLabel}</span>
-                      <a
-                        href={cfg.tokenLinkUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-brand-600 hover:underline flex items-center gap-1 font-semibold"
-                      >
-                        {cfg.tokenLinkText}
-                      </a>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showToken ? 'text' : 'password'}
-                        value={tokenInput}
-                        onChange={(e) => setTokenInput(e.target.value)}
-                        placeholder={cfg.tokenPlaceholder}
-                        className="w-full pr-10 pl-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowToken(!showToken)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      {cfg.scopesText}
-                    </p>
-                  </div>
+            <form onSubmit={handleConnectSubmit} className="space-y-4">
+              {/* Token Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <span>Personal Access Token (PAT)</span>
+                  <a
+                    href="https://github.com/settings/tokens"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-brand-600 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    Generate on GitHub ↗
+                  </a>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    className="w-full pr-10 pl-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Required scopes: <code className="text-brand-600 dark:text-brand-400">repo</code> (for private repositories) or <code className="text-brand-600 dark:text-brand-400">public_repo</code>.
+                </p>
+              </div>
 
-                  {/* Target Scope / Repository / Domain */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      {cfg.repoLabel}
-                    </label>
-                    <input
-                      type="text"
-                      value={repoInput}
-                      onChange={(e) => setRepoInput(e.target.value)}
-                      placeholder={cfg.repoPlaceholder}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                    />
-                  </div>
+              {/* Target Repository */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Target Repository (owner/repo)
+                </label>
+                <input
+                  type="text"
+                  value={repoInput}
+                  onChange={(e) => setRepoInput(e.target.value)}
+                  placeholder="bhumit9744/dypdyp"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-850 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
 
-                  {/* Error Message */}
-                  {connectError && (
-                    <div className="p-3 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 text-xs flex items-center gap-2 border border-rose-200 dark:border-rose-800">
-                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
-                      <span>{connectError}</span>
-                    </div>
-                  )}
+              {/* Error Message */}
+              {connectError && (
+                <div className="p-3 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 text-xs flex items-center gap-2 border border-rose-200 dark:border-rose-800">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{connectError}</span>
+                </div>
+              )}
 
-                  {/* Modal Buttons */}
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => setConnectModalOpen(false)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={connecting}
-                      className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-md disabled:opacity-50 flex items-center gap-2 transition-all"
-                    >
-                      {connecting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                      Verify & Connect
-                    </button>
-                  </div>
-                </form>
-              );
-            })()}
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setConnectModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={connecting}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-md disabled:opacity-50 flex items-center gap-2 transition-all"
+                >
+                  {connecting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  Verify & Connect
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
