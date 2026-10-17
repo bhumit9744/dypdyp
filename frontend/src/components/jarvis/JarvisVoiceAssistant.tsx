@@ -93,15 +93,16 @@ export const JarvisVoiceAssistant: React.FC = () => {
     setSearchQuery
   } = useApp();
 
-  // Floating & Modal State — Sleek HUD docked at bottom-right, opens via trigger pill or Alt+J
-  const [autoTurnOn, setAutoTurnOn] = useState<boolean>(() => {
-    return localStorage.getItem('jarvis_auto_open') === 'true';
-  });
-  const [isOpen, setIsOpen] = useState<boolean>(() => {
-    return localStorage.getItem('jarvis_auto_open') === 'true';
-  });
+  // Floating & Modal State — Sleek HUD docked at bottom-right, opens ONLY via tap or voice command
+  const [autoTurnOn, setAutoTurnOn] = useState<boolean>(true); // Background wake-word voice command listener enabled
+  const [isOpen, setIsOpen] = useState<boolean>(false); // ALWAYS starts closed on startup (opens only on tap or voice command)
   const [activeTab, setActiveTab] = useState<'voice' | 'linkedin' | 'mail' | 'system'>('voice');
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
+
+  // Clear any legacy auto-open preference so Jarvis never pops up automatically on page launch
+  useEffect(() => {
+    localStorage.setItem('jarvis_auto_open', 'false');
+  }, []);
 
   // Vapi Configuration State
   const [vapiConfig, setVapiConfig] = useState<VapiConfigResponse | null>(null);
@@ -170,6 +171,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
   const startVapiCallRef = useRef<() => Promise<void>>(async () => {});
   const lastAssistantChunkTimeRef = useRef<number>(0);
   const lastUserChunkTimeRef = useRef<number>(0);
+  const backgroundRecognitionRef = useRef<any>(null);
 
   useEffect(() => {
     callStatusRef.current = callStatus;
@@ -836,6 +838,11 @@ export const JarvisVoiceAssistant: React.FC = () => {
   useEffect(() => {
     const handleInterviewPause = () => {
       isInterviewActiveRef.current = true;
+      if (backgroundRecognitionRef.current) {
+        try {
+          backgroundRecognitionRef.current.abort();
+        } catch (_) {}
+      }
       if (callStatus !== 'idle' && vapiRef.current) {
         try {
           vapiRef.current.stop();
@@ -1215,23 +1222,105 @@ export const JarvisVoiceAssistant: React.FC = () => {
     }
   };
 
-  // Auto-Connect to Vapi on first user interaction if Auto-Turn On is active
+  // Background Wake-Word & Voice Command Listener (Opens Jarvis only on Voice Command or Tap)
   useEffect(() => {
-    const handleFirstGesture = () => {
-      if (!isInterviewActiveRef.current && autoTurnOn && isOpen && callStatusRef.current === 'idle') {
-        setTimeout(() => {
-          startVapiCallRef.current?.();
-        }, 200);
+    // If Jarvis is already open, or an interview is active, or a Vapi call is running, or wake listening is turned off
+    if (isOpen || isInterviewActiveRef.current || callStatus !== 'idle' || !autoTurnOn) {
+      if (backgroundRecognitionRef.current) {
+        try {
+          backgroundRecognitionRef.current.abort();
+        } catch (_) {}
+        backgroundRecognitionRef.current = null;
+      }
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    let recognition: any = null;
+    let isDisposed = false;
+
+    const startWakeWordListener = () => {
+      if (isDisposed || isOpen || isInterviewActiveRef.current || callStatusRef.current !== 'idle') return;
+
+      try {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event: any) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          const lower = transcript.toLowerCase().trim();
+
+          // Check for Jarvis wake words or voice commands
+          const hasWakeWord =
+            lower.includes('jarvis') ||
+            lower.includes('hey jarvis') ||
+            lower.includes('ok jarvis') ||
+            lower.includes('hello jarvis') ||
+            lower.includes('open jarvis');
+
+          if (hasWakeWord) {
+            console.log('[Jarvis Wake-Word] Detected voice activation:', transcript);
+            try {
+              recognition.stop();
+            } catch (_) {}
+
+            playWakeChime();
+            setIsOpen(true);
+
+            // Execute specific command intent if spoken along with wake word (e.g. "jarvis open linkedin")
+            if (lower.length > 7) {
+              checkVoiceIntents(transcript);
+            }
+
+            // Connect to Vapi voice call
+            setTimeout(() => {
+              if (!isInterviewActiveRef.current) {
+                startVapiCallRef.current?.();
+              }
+            }, 300);
+          }
+        };
+
+        recognition.onerror = (e: any) => {
+          if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            return;
+          }
+        };
+
+        recognition.onend = () => {
+          if (!isDisposed && !isOpen && !isInterviewActiveRef.current && callStatusRef.current === 'idle') {
+            setTimeout(() => {
+              startWakeWordListener();
+            }, 1000);
+          }
+        };
+
+        recognition.start();
+        backgroundRecognitionRef.current = recognition;
+      } catch (err) {
+        console.warn('[Jarvis Wake-Word] Background listener initialization notice:', err);
       }
     };
 
-    window.addEventListener('pointerdown', handleFirstGesture, { once: true });
-    window.addEventListener('keydown', handleFirstGesture, { once: true });
+    startWakeWordListener();
+
     return () => {
-      window.removeEventListener('pointerdown', handleFirstGesture);
-      window.removeEventListener('keydown', handleFirstGesture);
+      isDisposed = true;
+      if (recognition) {
+        try {
+          recognition.abort();
+        } catch (_) {}
+      }
+      backgroundRecognitionRef.current = null;
     };
-  }, [autoTurnOn, isOpen]);
+  }, [isOpen, callStatus, autoTurnOn, playWakeChime, checkVoiceIntents]);
 
   // -------------------------------------------------------------------------
   // LinkedIn Plugin Actions
@@ -1378,7 +1467,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
                 ? `🎙️ Jarvis Call Active (${formatDuration(callDurationSeconds)})`
                 : callStatus === 'connecting'
                 ? '⚡ Connecting Vapi Voice...'
-                : '🎙️ Tap to Call Jarvis Voice'}
+                : '🎙️ Tap or Say "Jarvis"'}
             </span>
           </div>
 
@@ -1394,7 +1483,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
               }
             }}
             className="relative group w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl bg-gradient-to-tr from-white via-cyan-50 to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-cyan-950 border border-slate-200 dark:border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:scale-110 hover:shadow-cyan-500/20"
-            title="Jarvis AI Voice Agent (Powered Exclusively by Vapi AI Web SDK)"
+            title="Jarvis AI Voice Assistant (Tap or say 'Jarvis' to activate)"
             aria-label="Open Jarvis Voice Assistant"
           >
             {/* Animated Glowing Rings */}
@@ -1504,7 +1593,6 @@ export const JarvisVoiceAssistant: React.FC = () => {
                   onClick={() => {
                     const next = !autoTurnOn;
                     setAutoTurnOn(next);
-                    localStorage.setItem('jarvis_auto_open', String(next));
                   }}
                   className={`px-2 py-1 rounded-lg border text-[10px] font-mono flex items-center gap-1 transition-all ${
                     autoTurnOn
@@ -1513,12 +1601,12 @@ export const JarvisVoiceAssistant: React.FC = () => {
                   }`}
                   title={
                     autoTurnOn
-                      ? 'Auto-Turn On Enabled: Jarvis automatically wakes and opens on launch'
-                      : 'Auto-Turn On Disabled: Click to enable auto-turn on'
+                      ? 'Voice Command ("Jarvis") Wake-Word: Active'
+                      : 'Voice Command ("Jarvis") Wake-Word: Disabled'
                   }
                 >
                   <Zap className={`w-3 h-3 ${autoTurnOn ? 'text-amber-500 dark:text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
-                  <span className="hidden sm:inline">Auto-Open:</span>
+                  <span className="hidden sm:inline">Voice Wake:</span>
                   <span className={autoTurnOn ? 'text-cyan-700 dark:text-cyan-300 font-bold' : 'text-slate-500 dark:text-slate-400'}>
                     {autoTurnOn ? 'ON' : 'OFF'}
                   </span>
