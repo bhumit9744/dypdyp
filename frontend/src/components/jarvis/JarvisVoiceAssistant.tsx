@@ -892,9 +892,9 @@ export const JarvisVoiceAssistant: React.FC = () => {
   return (
     <>
       {/* ===================================================================
-       * 1. Persistent Arc-Reactor Floating Trigger Pill (Bottom-Left)
+       * 1. Persistent Arc-Reactor Floating Trigger Pill (Bottom-Right)
        * =================================================================== */}
-      <div className="fixed bottom-6 left-6 z-50 flex items-center gap-2.5 select-none no-print">
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 select-none no-print">
         {/* Status Bubble Badge */}
         {!isOpen && (
           <div
@@ -1000,7 +1000,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
           className={`fixed z-50 transition-all duration-300 shadow-2xl no-print ${
             isMaximized
               ? 'inset-4 md:inset-8'
-              : 'bottom-24 left-6 w-[94vw] max-w-[560px] h-[720px] max-h-[88vh]'
+              : 'bottom-24 right-6 w-[94vw] max-w-[560px] h-[720px] max-h-[88vh]'
           }`}
         >
           <div className="w-full h-full rounded-2xl bg-white/95 dark:bg-slate-950/95 text-slate-900 dark:text-slate-100 border border-slate-200/90 dark:border-cyan-500/30 backdrop-blur-xl flex flex-col overflow-hidden shadow-2xl">
