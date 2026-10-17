@@ -520,6 +520,21 @@ export const ResumeSubSection: React.FC = () => {
     );
   }
 
+  const handleExportPdf = () => {
+    const wasEditing = isEditing;
+    // Temporarily turn off editing mode so print output renders pure text spans
+    setIsEditing(false);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        window.print();
+        // Restore previous editing state after print dialog opens
+        setTimeout(() => {
+          setIsEditing(wasEditing);
+        }, 500);
+      }, 50);
+    });
+  };
+
   return (
     <div className="flex flex-col h-[86vh] min-h-[720px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden select-none">
       {/* Top Professional Toolbar */}
@@ -549,7 +564,7 @@ export const ResumeSubSection: React.FC = () => {
           if (el) (el as HTMLElement).click();
         }}
         onOpenCompareModal={() => setIsCompareOpen(true)}
-        onExportPdf={() => window.print()}
+        onExportPdf={handleExportPdf}
         onOpenUploadModal={() => setIsUploadOpen(true)}
       />
 

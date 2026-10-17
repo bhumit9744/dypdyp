@@ -93,7 +93,7 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 sm:px-8 sticky top-0 z-40 transition-colors shadow-[0_1px_2px_0_rgba(15,23,42,0.03)]">
+    <header className="h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 sm:px-8 sticky top-0 z-40 transition-colors shadow-[0_1px_2px_0_rgba(15,23,42,0.03)] no-print">
       <div className="max-w-7xl mx-auto h-full flex items-center justify-between gap-6">
         
         {/* Left: Brand Identity */}

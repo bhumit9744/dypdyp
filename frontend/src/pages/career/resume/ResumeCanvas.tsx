@@ -41,7 +41,7 @@ export const ResumeCanvas: React.FC<ResumeCanvasProps> = ({
 
       {/* A4 Canvas Sheet Container */}
       <div
-        className="transition-transform duration-150 ease-out origin-top"
+        className="resume-zoom-wrapper transition-transform duration-150 ease-out origin-top"
         style={{
           transform: `scale(${zoom / 100})`,
           width: '210mm'

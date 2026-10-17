@@ -160,13 +160,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen && setMobileOpen(false)}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in no-print"
         />
       )}
 
       {/* Main Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 md:sticky md:top-0 h-screen flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out shadow-lg md:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 md:sticky md:top-0 h-screen flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out shadow-lg md:shadow-none no-print ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } ${isSidebarCollapsed ? 'md:w-20' : 'w-64 md:w-64'}`}
       >

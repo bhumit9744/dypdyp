@@ -511,7 +511,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
       {/* ===================================================================
        * 1. Floating Holographic Arc-Reactor Orb (Always Present Bottom-Right)
        * =================================================================== */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 select-none">
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 select-none no-print">
         {/* Wake-Word Badge Notification */}
         {isWakeWordArmed && !isOpen && (
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 text-cyan-300 border border-cyan-500/40 text-xs shadow-lg backdrop-blur-md animate-pulse">
@@ -563,7 +563,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
        * 2. Jarvis Command Center HUD Modal
        * =================================================================== */}
       {isOpen && (
-        <div className={`fixed z-50 transition-all duration-300 shadow-2xl ${
+        <div className={`fixed z-50 transition-all duration-300 shadow-2xl no-print ${
           isMaximized
             ? 'inset-4 md:inset-8'
             : 'bottom-24 right-6 w-[94vw] max-w-[540px] h-[680px] max-h-[85vh]'
