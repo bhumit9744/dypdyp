@@ -535,6 +535,14 @@ export const ResumeSubSection: React.FC = () => {
     });
   };
 
+  useEffect(() => {
+    const handleJarvisExport = () => {
+      handleExportPdf();
+    };
+    window.addEventListener('jarvis_export_resume_pdf', handleJarvisExport);
+    return () => window.removeEventListener('jarvis_export_resume_pdf', handleJarvisExport);
+  }, [isEditing]);
+
   return (
     <div className="flex flex-col h-[86vh] min-h-[720px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden select-none">
       {/* Top Professional Toolbar */}

@@ -24,17 +24,17 @@ def test_vapi_public_config_endpoint():
     assert "configured" in data
     assert "system_prompt" in data
     assert "tools_count" in data
-    assert data["tools_count"] == 10
+    assert data["tools_count"] == 17
     assert "private_key" not in data
     assert "server_secret" not in data
 
 
 def test_vapi_tools_catalog_endpoint():
-    """Verify GET /api/v1/jarvis/vapi/tools returns all 10 allowlisted function schemas."""
+    """Verify GET /api/v1/jarvis/vapi/tools returns all 17 allowlisted function schemas."""
     res = client.get("/api/v1/jarvis/vapi/tools")
     assert res.status_code == 200
     data = res.json()
-    assert data["count"] == 10
+    assert data["count"] == 17
     names = [t["function"]["name"] for t in data["tools"]]
     expected_tools = [
         "get_connected_integrations",
@@ -47,6 +47,13 @@ def test_vapi_tools_catalog_endpoint():
         "get_deployment_status",
         "search_saved_opportunities",
         "get_placement_progress",
+        "get_student_profile",
+        "get_resume_data",
+        "get_all_student_data",
+        "open_app_or_website",
+        "post_to_linkedin",
+        "open_job_profile",
+        "open_resume_pdf",
     ]
     for expected in expected_tools:
         assert expected in names
@@ -140,6 +147,187 @@ def test_vapi_webhook_tool_call_get_placement_progress():
     assert "skills" in output
     assert "applications" in output
     assert "resume" in output
+
+
+def test_vapi_webhook_tool_call_get_student_profile():
+    """Test webhook tool call for get_student_profile."""
+    payload = {
+        "message": {
+            "type": "tool-calls",
+            "toolCalls": [
+                {
+                    "id": "call_profile_1",
+                    "type": "function",
+                    "function": {
+                        "name": "get_student_profile",
+                        "arguments": {},
+                    },
+                }
+            ],
+        }
+    }
+    res = client.post("/api/v1/jarvis/vapi/webhook", json=payload)
+    assert res.status_code == 200
+    output = res.json()["results"][0]["result"]
+    assert output["source"] == "Placement Hub Verified Student Dossier"
+    assert output["status"] == "authorized"
+    assert "profile" in output
+    assert output["profile"]["name"] in ["Alex Rivera", "Candidate Student"]
+    assert "department" in output["profile"]
+
+
+def test_vapi_webhook_tool_call_get_resume_data():
+    """Test webhook tool call for get_resume_data."""
+    payload = {
+        "message": {
+            "type": "tool-calls",
+            "toolCalls": [
+                {
+                    "id": "call_resume_1",
+                    "type": "function",
+                    "function": {
+                        "name": "get_resume_data",
+                        "arguments": {},
+                    },
+                }
+            ],
+        }
+    }
+    res = client.post("/api/v1/jarvis/vapi/webhook", json=payload)
+    assert res.status_code == 200
+    output = res.json()["results"][0]["result"]
+    assert output["source"] == "Placement Hub ATS Resume Studio"
+    assert output["status"] == "authorized"
+    assert "master_resume" in output
+
+
+def test_vapi_webhook_tool_call_get_all_student_data():
+    """Test webhook tool call for get_all_student_data."""
+    payload = {
+        "message": {
+            "type": "tool-calls",
+            "toolCalls": [
+                {
+                    "id": "call_all_data_1",
+                    "type": "function",
+                    "function": {
+                        "name": "get_all_student_data",
+                        "arguments": {},
+                    },
+                }
+            ],
+        }
+    }
+    res = client.post("/api/v1/jarvis/vapi/webhook", json=payload)
+    assert res.status_code == 200
+    output = res.json()["results"][0]["result"]
+    assert output["source"] == "Placement Hub Unified Student Intelligence"
+    assert output["status"] == "authorized"
+    assert "profile" in output
+    assert "resume" in output
+    assert "placement_progress" in output
+
+
+def test_vapi_webhook_tool_call_open_app_or_website():
+    """Test webhook tool call for open_app_or_website with LinkedIn and navigation."""
+    payload = {
+        "message": {
+            "type": "tool-calls",
+            "toolCalls": [
+                {
+                    "id": "call_app_li",
+                    "type": "function",
+                    "function": {
+                        "name": "open_app_or_website",
+                        "arguments": {"app": "linkedin"},
+                    },
+                }
+            ],
+        }
+    }
+    res = client.post("/api/v1/jarvis/vapi/webhook", json=payload)
+    assert res.status_code == 200
+    output = res.json()["results"][0]["result"]
+    assert output["source"] == "Placement Hub Client Navigator"
+    assert output["status"] == "authorized"
+    assert output["app"] == "linkedin"
+    assert output["target_url"] == "https://www.linkedin.com"
+
+
+def test_vapi_webhook_tool_call_post_to_linkedin():
+    """Test webhook tool call for post_to_linkedin with auto-drafting and share URL."""
+    payload = {
+        "message": {
+            "type": "tool-calls",
+            "toolCalls": [
+                {
+                    "id": "call_post_li",
+                    "type": "function",
+                    "function": {
+                        "name": "post_to_linkedin",
+                        "arguments": {"topic": "Placed at Google", "content": "Thrilled to announce my placement!"},
+                    },
+                }
+            ],
+        }
+    }
+    res = client.post("/api/v1/jarvis/vapi/webhook", json=payload)
+    assert res.status_code == 200
+    output = res.json()["results"][0]["result"]
+    assert output["source"] == "Placement Hub LinkedIn Integration"
+    assert output["status"] == "authorized"
+    assert "share_url" in output
+    assert "linkedin.com/feed" in output["share_url"]
+
+
+def test_vapi_webhook_tool_call_open_job_profile():
+    """Test webhook tool call for open_job_profile."""
+    payload = {
+        "message": {
+            "type": "tool-calls",
+            "toolCalls": [
+                {
+                    "id": "call_job_1",
+                    "type": "function",
+                    "function": {
+                        "name": "open_job_profile",
+                        "arguments": {"role_or_company": "Frontend Engineer"},
+                    },
+                }
+            ],
+        }
+    }
+    res = client.post("/api/v1/jarvis/vapi/webhook", json=payload)
+    assert res.status_code == 200
+    output = res.json()["results"][0]["result"]
+    assert output["source"] == "Placement Hub Opportunities Engine"
+    assert output["status"] == "authorized"
+    assert output["navigation_target"] == "opportunities"
+
+
+def test_vapi_webhook_tool_call_open_resume_pdf():
+    """Test webhook tool call for open_resume_pdf."""
+    payload = {
+        "message": {
+            "type": "tool-calls",
+            "toolCalls": [
+                {
+                    "id": "call_pdf_1",
+                    "type": "function",
+                    "function": {
+                        "name": "open_resume_pdf",
+                        "arguments": {"action": "export_pdf"},
+                    },
+                }
+            ],
+        }
+    }
+    res = client.post("/api/v1/jarvis/vapi/webhook", json=payload)
+    assert res.status_code == 200
+    output = res.json()["results"][0]["result"]
+    assert output["source"] == "Placement Hub ATS Resume Studio"
+    assert output["status"] == "authorized"
+    assert output["navigation_target"] == "resume"
 
 
 def test_vapi_webhook_tool_call_search_saved_opportunities():
