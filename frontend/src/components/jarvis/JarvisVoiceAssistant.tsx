@@ -108,6 +108,7 @@ export const JarvisVoiceAssistant: React.FC = () => {
   const recognitionRef = useRef<any>(null);
   const isRecognizingRef = useRef<boolean>(false);
   const isSpeakingRef = useRef<boolean>(false);
+  const isInterviewActiveRef = useRef<boolean>(false);
   const hasGreetedRef = useRef<boolean>(false);
   const restartTimeoutRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -151,9 +152,9 @@ export const JarvisVoiceAssistant: React.FC = () => {
     }
   };
 
-  // Safe Speech Recognition Starter
+  // Safe Speech Recognition Starter (respects active interview session lock)
   const startRecognitionSafe = useCallback(() => {
-    if (!recognitionRef.current || isRecognizingRef.current || isSpeakingRef.current) return;
+    if (isInterviewActiveRef.current || !recognitionRef.current || isRecognizingRef.current || isSpeakingRef.current) return;
     try {
       recognitionRef.current.start();
       isRecognizingRef.current = true;
@@ -242,7 +243,8 @@ export const JarvisVoiceAssistant: React.FC = () => {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
+      recognition.lang = 'en-IN';
 
       recognition.onresult = (event: any) => {
         let currentInterim = '';
@@ -278,8 +280,8 @@ export const JarvisVoiceAssistant: React.FC = () => {
       recognition.onend = () => {
         isRecognizingRef.current = false;
         if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
-        // Automatically restart after 250ms delay if wake word is armed and not speaking
-        if (isWakeWordArmed && !isSpeakingRef.current) {
+        // Automatically restart after 250ms delay if wake word is armed, not speaking, and interview is not active
+        if (isWakeWordArmed && !isSpeakingRef.current && !isInterviewActiveRef.current) {
           restartTimeoutRef.current = setTimeout(() => {
             startRecognitionSafe();
           }, 250);
@@ -305,6 +307,34 @@ export const JarvisVoiceAssistant: React.FC = () => {
           isRecognizingRef.current = false;
         } catch (_) {}
       }
+    };
+  }, [isWakeWordArmed, startRecognitionSafe]);
+
+  // Coordinate with Interview Studio: pause Jarvis listening when interview is actively recording
+  useEffect(() => {
+    const handleInterviewPause = () => {
+      isInterviewActiveRef.current = true;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+          isRecognizingRef.current = false;
+          setIsListening(false);
+        } catch (_) {}
+      }
+    };
+
+    const handleInterviewResume = () => {
+      isInterviewActiveRef.current = false;
+      if (isWakeWordArmed && !isSpeakingRef.current) {
+        setTimeout(() => startRecognitionSafe(), 300);
+      }
+    };
+
+    window.addEventListener('jarvis-pause-listening', handleInterviewPause);
+    window.addEventListener('jarvis-resume-listening', handleInterviewResume);
+    return () => {
+      window.removeEventListener('jarvis-pause-listening', handleInterviewPause);
+      window.removeEventListener('jarvis-resume-listening', handleInterviewResume);
     };
   }, [isWakeWordArmed, startRecognitionSafe]);
 
