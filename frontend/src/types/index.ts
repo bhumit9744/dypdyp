@@ -1,6 +1,6 @@
 export type Role = 'student' | 'coordinator';
 
-export type NavSection = 'dashboard' | 'career' | 'resume' | 'explore' | 'opportunities' | 'placements' | 'arena' | 'integrations';
+export type NavSection = 'dashboard' | 'career' | 'resume' | 'explore' | 'opportunities' | 'placements' | 'arena' | 'integrations' | 'connect';
 
 export type CareerSubSection = 'profile' | 'career-guidance' | 'career-roadmap' | 'skills' | 'assessments' | 'interview-studio';
 
@@ -19,7 +19,9 @@ export type PlacementsSubSection = 'applications' | 'tracker' | 'shortlists' | '
 
 export type ArenaSubSection = 'games' | 'leaderboard';
 
-export type SubSection = CareerSubSection | ExploreSubSection | PlacementsSubSection | ArenaSubSection;
+export type ConnectSubSection = 'home' | 'communities' | 'mentors' | 'challenges';
+
+export type SubSection = CareerSubSection | ExploreSubSection | PlacementsSubSection | ArenaSubSection | ConnectSubSection;
 
 export interface StudentProfile {
   id: string;
@@ -706,4 +708,144 @@ export interface ProviderAuditReport {
   incremental_updates_and_webhooks: boolean;
   search_url_template?: string;
   disclaimer: string;
+}
+
+// =========================================================================
+// Student Connect Types
+// =========================================================================
+
+export interface StudentConnectPost {
+  id: string;
+  title: string;
+  content: string;
+  post_type: 'discussion' | 'question' | 'resource' | 'milestone' | 'announcement';
+  topic_tags: string[];
+  group_id?: string;
+  group_name?: string;
+  resource_url?: string;
+  author_id: string;
+  author_name: string;
+  author_avatar?: string;
+  author_role: string;
+  created_at: string;
+  likes_count: number;
+  liked_by_user?: boolean;
+  comments_count: number;
+  comments: ConnectComment[];
+  has_accepted_answer?: boolean;
+  is_pinned?: boolean;
+  is_saved?: boolean;
+}
+
+export interface ConnectComment {
+  id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar?: string;
+  author_role: string;
+  content: string;
+  created_at: string;
+  upvotes: number;
+  is_accepted?: boolean;
+  is_mentor_reply?: boolean;
+}
+
+export interface ConnectGroup {
+  id: string;
+  name: string;
+  description: string;
+  category: 'Career Paths' | 'DSA & Coding' | 'Web Dev' | 'AI / ML' | 'Aptitude' | 'Company Specific' | 'Projects' | string;
+  tags: string[];
+  banner_gradient: string;
+  icon_name: string;
+  member_count: number;
+  active_today_count: number;
+  is_joined: boolean;
+  pinned_announcement?: string;
+  rules: string[];
+}
+
+export interface ConnectMentor {
+  id: string;
+  name: string;
+  avatar?: string;
+  role: string;
+  company: string;
+  college_batch: string;
+  areas_of_expertise: string[];
+  career_path: string;
+  topics: string[];
+  availability_status: string;
+  is_verified: boolean;
+  rating: number;
+  sessions_completed: number;
+  bio: string;
+}
+
+export interface ConnectMentorshipRequest {
+  id: string;
+  mentor_id: string;
+  mentor_name: string;
+  topic: string;
+  description: string;
+  preferred_format: 'Async Q&A via Chat' | '1-on-1 Video Session' | 'Code / Resume Review' | string;
+  preferred_time?: string;
+  student_name: string;
+  status: 'Pending' | 'Accepted' | 'Declined' | 'Completed';
+  created_at: string;
+  response_note?: string;
+}
+
+export interface ConnectChallengeTask {
+  id: string;
+  day: number;
+  title: string;
+  description: string;
+  is_completed: boolean;
+  resource_hint?: string;
+}
+
+export interface ConnectChallenge {
+  id: string;
+  title: string;
+  tagline: string;
+  description: string;
+  duration_days: number;
+  category: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  reward_badge: string;
+  participants_count: number;
+  is_joined: boolean;
+  tasks: ConnectChallengeTask[];
+  completed_tasks_count: number;
+  percent_complete: number;
+}
+
+export interface ConnectMotivation {
+  id: string;
+  quote: string;
+  author: string;
+  message: string;
+  action_today: string;
+  date: string;
+  category: string;
+}
+
+export interface ConnectSharedGoal {
+  id: string;
+  title: string;
+  target_count: number;
+  current_count: number;
+  category: string;
+  is_completed: boolean;
+  week_label: string;
+}
+
+export interface ConnectBadge {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  unlocked: boolean;
+  earned_date?: string;
 }

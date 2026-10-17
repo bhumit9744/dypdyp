@@ -17,7 +17,8 @@ import {
   Gamepad2,
   Bot,
   Compass,
-  Sparkles
+  Sparkles,
+  MessageSquare
 } from 'lucide-react';
 import { SubSection } from '../../types';
 
@@ -69,6 +70,12 @@ export const SubNav: React.FC = () => {
     ],
     arena: [
       { id: 'games', label: 'Games', icon: Gamepad2 }
+    ],
+    connect: [
+      { id: 'home', label: 'Community Home', icon: Sparkles },
+      { id: 'communities', label: 'Communities & Q&A', icon: MessageSquare },
+      { id: 'mentors', label: 'Senior Mentoring', icon: GraduationCap },
+      { id: 'challenges', label: 'Challenges & Progress', icon: Trophy }
     ]
   };
 

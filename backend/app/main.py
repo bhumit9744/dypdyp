@@ -11,6 +11,7 @@ from .api.guidance_endpoints import router as guidance_router
 from .api.jarvis_endpoints import router as jarvis_router
 from .api.integration_endpoints import router as integration_router
 from .api.opportunity_endpoints import router as opportunity_router
+from .api.connect_endpoints import router as connect_router
 
 # Initialize database tables and columns
 init_db_schema()
@@ -38,6 +39,7 @@ app.include_router(guidance_router, prefix="/api/v1")
 app.include_router(jarvis_router, prefix="/api/v1")
 app.include_router(integration_router, prefix="/api/v1")
 app.include_router(opportunity_router, prefix="/api/v1")
+app.include_router(connect_router, prefix="/api/v1")
 
 @app.get("/")
 def root():

@@ -30,7 +30,9 @@ import {
   ChevronRight,
   FileText,
   Layers,
-  Bot
+  Bot,
+  Trophy,
+  MessageSquare
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NavSection, SubSection } from '../../types';
@@ -75,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
 
   // Synchronize expanded state with active section
   React.useEffect(() => {
-    if (currentSection === 'career' || currentSection === 'explore' || currentSection === 'placements') {
+    if (currentSection === 'career' || currentSection === 'explore' || currentSection === 'placements' || currentSection === 'connect') {
       setExpandedSection(currentSection);
     }
   }, [currentSection]);
@@ -130,6 +132,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, setMobileO
       icon: Sparkles,
       section: 'opportunities',
       badge: 'Intelligence'
+    },
+    {
+      id: 'connect',
+      label: 'Student Connect',
+      icon: Users,
+      section: 'connect',
+      badge: 'Community',
+      defaultSub: 'home',
+      subsections: [
+        { id: 'home', label: 'Community Home', icon: Home },
+        { id: 'communities', label: 'Communities & Q&A', icon: MessageSquare },
+        { id: 'mentors', label: 'Senior Mentors', icon: GraduationCap },
+        { id: 'challenges', label: 'Challenges & Progress', icon: Trophy }
+      ]
     },
     {
       id: 'placements',

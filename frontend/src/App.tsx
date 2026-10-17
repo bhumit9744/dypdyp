@@ -39,6 +39,9 @@ import { IntegrationCenterPage } from './pages/integrations/IntegrationCenterPag
 // Opportunities Intelligence
 import { OpportunitiesPage } from './pages/opportunities/OpportunitiesPage';
 
+// Student Connect
+import { StudentConnectPage } from './pages/connect/StudentConnectPage';
+
 export const AppContent: React.FC = () => {
   const { currentSection, currentSubSection } = useApp();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -110,6 +113,9 @@ export const AppContent: React.FC = () => {
       case 'arena':
         return <TechArenaPage />;
 
+      case 'connect':
+        return <StudentConnectPage />;
+
       default:
         return <DashboardPage />;
     }
@@ -120,6 +126,7 @@ export const AppContent: React.FC = () => {
       case 'dashboard': return 'Dashboard';
       case 'integrations': return 'Integrations';
       case 'opportunities': return 'Opportunities';
+      case 'connect': return 'Student Connect';
       case 'career': return 'My Career';
       case 'explore': return 'Explore';
       case 'placements': return 'Placements';
