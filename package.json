@@ -1,0 +1,12 @@
+{
+  "name": "dypdyp-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Placement Hub Workspace",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend run build"
+  }
+}

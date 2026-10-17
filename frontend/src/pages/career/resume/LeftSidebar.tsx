@@ -15,8 +15,7 @@ import {
   FileCheck,
   ExternalLink,
   ChevronRight,
-  Sparkles,
-  X
+  Sparkles
 } from 'lucide-react';
 import {
   ResumeVersionSummary,
@@ -38,7 +37,6 @@ interface LeftSidebarProps {
   onSelectTemplate: (templateId: string) => void;
   alumniExamples: AlumniExample[];
   onUseAlumniTemplate: (templateId: string) => void;
-  onClose?: () => void;
 }
 
 type SidebarTab = 'versions' | 'sections' | 'templates' | 'alumni';
@@ -56,8 +54,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   selectedTemplateId,
   onSelectTemplate,
   alumniExamples,
-  onUseAlumniTemplate,
-  onClose
+  onUseAlumniTemplate
 }) => {
   const [activeTab, setActiveTab] = useState<SidebarTab>('versions');
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
@@ -134,26 +131,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   };
 
   return (
-    <aside className="w-full h-full bg-white dark:bg-slate-900 flex flex-col select-none no-print">
-      {/* Optional Drawer Header */}
-      {onClose && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-brand-600" />
-            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Resume Studio Library
-            </span>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-            title="Close Drawer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
+    <aside className="w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 select-none no-print">
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 p-1.5 gap-1 bg-slate-50 dark:bg-slate-950/40">
         <button
