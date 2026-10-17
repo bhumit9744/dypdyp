@@ -1677,6 +1677,199 @@
             }
         }
 
+        /* FLUXX CONTACT SECTION */
+        .contact-section {
+            padding: 100px 24px;
+            background: var(--bg);
+            color: var(--text);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-container {
+            max-width: var(--max, 1220px);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 0.85fr;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .contact-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--mint);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-bottom: 24px;
+        }
+
+        .contact-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 12px var(--green);
+            flex-shrink: 0;
+        }
+
+        .contact-heading h2 {
+            font-size: clamp(38px, 4.5vw, 60px);
+            line-height: 1.08;
+            letter-spacing: -2px;
+            font-weight: 750;
+            margin: 0 0 20px;
+        }
+
+        .contact-heading h2 span {
+            color: var(--mint);
+        }
+
+        .contact-heading>p {
+            max-width: 440px;
+            color: var(--muted);
+            font-size: 16px;
+            line-height: 1.8;
+            margin: 0;
+        }
+
+        .contact-card {
+            padding: 34px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background:
+                radial-gradient(circle at 100% 0%,
+                    rgba(57, 217, 154, 0.10),
+                    transparent 42%),
+                var(--panel);
+            box-shadow: 0 24px 70px var(--shadow, rgba(0, 0, 0, .15));
+        }
+
+        :root[data-theme="light"] .contact-card {
+            background: linear-gradient(160deg, #fff, #f7faf8);
+            box-shadow: 0 12px 36px rgba(25, 55, 41, .045);
+        }
+
+        .contact-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .contact-icon {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            color: var(--mint);
+            font-size: 22px;
+            background: var(--surface-glass);
+        }
+
+        .contact-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .contact-card h3 {
+            color: var(--text);
+            font-size: 24px;
+            line-height: 1.3;
+            letter-spacing: -0.6px;
+            margin: 0 0 12px;
+        }
+
+        .contact-card>p {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+            margin: 0 0 24px;
+        }
+
+        .contact-email {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 15px 0;
+            margin-bottom: 22px;
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            overflow-wrap: anywhere;
+            transition: color .2s ease;
+        }
+
+        .contact-email span {
+            color: var(--mint);
+            font-size: 18px;
+        }
+
+        .contact-email:hover {
+            color: var(--mint);
+        }
+
+        .contact-button {
+            width: 100%;
+            min-height: 48px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-radius: 10px;
+            background: var(--mint);
+            color: #071810;
+            font-size: 13px;
+            font-weight: 800;
+            text-decoration: none;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .contact-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(57, 217, 154, .25);
+        }
+
+        .contact-button:focus-visible,
+        .contact-email:focus-visible {
+            outline: 3px solid var(--mint);
+            outline-offset: 4px;
+        }
+
+        @media (max-width: 800px) {
+            .contact-section {
+                padding: 72px 20px;
+            }
+
+            .contact-container {
+                grid-template-columns: 1fr;
+                gap: 36px;
+            }
+
+            .contact-heading h2 {
+                letter-spacing: -1.5px;
+            }
+
+            .contact-card {
+                padding: 24px;
+            }
+        }
+
         @media(prefers-reduced-motion:reduce) {
 
             body,
@@ -1686,7 +1879,9 @@
             .price-card,
             .interview-ui,
             .cta-box,
-            .theme-toggle {
+            .theme-toggle,
+            .contact-email,
+            .contact-button {
                 transition: none !important
             }
         }
@@ -1699,7 +1894,7 @@
             <a href="#home" class="brand" aria-label="FLUXX home"><span class="brand-mark"></span>FLUXX</a>
             <nav class="nav-links" id="navLinks" aria-label="Main navigation">
                 <a href="#platform">Platform</a><a href="#interviews">AI Interviews</a><a href="#journey">How it
-                    works</a><a href="#pricing">Pricing</a>
+                    works</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a>
             </nav>
             <div class="nav-actions"><button class="theme-toggle" id="themeToggle" type="button"
                     aria-label="Switch to light theme" title="Switch theme"><svg class="theme-icon" viewBox="0 0 24 24"
@@ -1964,6 +2159,50 @@
             </div>
         </section>
 
+        <!-- CONTACT SECTION -->
+        <section class="contact-section reveal" id="contact">
+            <div class="wrap contact-container">
+                <div class="contact-heading">
+                    <span class="contact-eyebrow">
+                        <span class="contact-dot"></span>
+                        LET'S CONNECT
+                    </span>
+                    <h2>Have a question?<br />
+                        <span>Let's talk.</span>
+                    </h2>
+                    <p>
+                        Whether you're a student, educator, or career partner,
+                        we'd love to hear from you.
+                    </p>
+                </div>
+
+                <div class="contact-card">
+                    <div class="contact-card-top">
+                        <div class="contact-icon">↗</div>
+                        <span class="contact-status">
+                            <span class="contact-dot"></span>
+                            Open to conversations
+                        </span>
+                    </div>
+
+                    <h3>Let's build your future together.</h3>
+                    <p>
+                        Reach out to the FLUXX team for platform support, campus partnerships,
+                        feedback, or anything else on your career roadmap.
+                    </p>
+
+                    <a class="contact-email" href="mailto:hello@fluxx.ai">
+                        hello@fluxx.ai
+                        <span>↗</span>
+                    </a>
+
+                    <a class="contact-button" href="mailto:hello@fluxx.ai?subject=Hello%20FLUXX">
+                        Get in touch <span>→</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
         <section class="cta" id="get-started">
             <div class="wrap">
                 <div class="cta-box reveal"><span class="eyebrow">The next chapter starts here</span>
@@ -1980,257 +2219,12 @@
         <div class="wrap footer-inner"><a href="#home" class="brand"><span class="brand-mark"></span>FLUXX</a><span
                 class="footer-copy">© <span id="year"></span> FLUXX. Forge Your Future.</span>
             <div class="footer-links"><a href="#platform">Platform</a><a href="#interviews">AI interviews</a><a
-                    href="#pricing">Pricing</a><a href="#home">Back to top ↑</a></div>
+                    href="#pricing">Pricing</a><a href="#contact">Contact</a><a href="#home">Back to top ↑</a></div>
         </div>
     </footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    ```html
-    <!-- CONTACT SECTION -->
-    <section class="contact-section" id="contact">
-        <div class="contact-container">
 
-            <div class="contact-heading">
-                <span class="contact-eyebrow">
-                    <span class="contact-dot"></span>
-                    LET'S CONNECT
-                </span>
-
-                <h2>Have a question?<br />
-                    <span>Let's talk.</span>
-                </h2>
-
-                <p>
-                    Whether you're a student, educator, or potential partner,
-                    we'd love to hear from you.
-                </p>
-            </div>
-
-            <div class="contact-card">
-                <div class="contact-card-top">
-                    <div class="contact-icon">↗</div>
-                    <span class="contact-status">
-                        <span class="contact-dot"></span>
-                        Open to conversations
-                    </span>
-                </div>
-
-                <h3>Let's build your future together.</h3>
-                <p>
-                    Reach out to the FLUXX team for support, partnerships,
-                    feedback, or anything else on your mind.
-                </p>
-
-                <!-- Replace with your real support email -->
-                <a class="contact-email" href="mailto:hello@yourdomain.com">
-                    hello@yourdomain.com
-                    <span>↗</span>
-                </a>
-
-                <a class="contact-button" href="mailto:hello@yourdomain.com?subject=Hello%20FLUXX">
-                    Get in touch <span>→</span>
-                </a>
-            </div>
-
-        </div>
-    </section>
-
-    <style>
-        /* FLUXX CONTACT SECTION */
-        .contact-section {
-            padding: 110px 24px;
-            background: var(--bg);
-            color: var(--text);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .contact-container {
-            max-width: var(--max, 1220px);
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 0.85fr;
-            align-items: center;
-            gap: 80px;
-        }
-
-        .contact-eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 9px;
-            color: var(--mint);
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            margin-bottom: 24px;
-        }
-
-        .contact-dot {
-            display: inline-block;
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 12px var(--green);
-            flex-shrink: 0;
-        }
-
-        .contact-heading h2 {
-            font-size: clamp(42px, 5vw, 68px);
-            line-height: 1.04;
-            letter-spacing: -2.8px;
-            font-weight: 750;
-            margin: 0 0 24px;
-        }
-
-        .contact-heading h2 span {
-            color: var(--mint);
-        }
-
-        .contact-heading>p {
-            max-width: 440px;
-            color: var(--muted);
-            font-size: 16px;
-            line-height: 1.8;
-            margin: 0;
-        }
-
-        .contact-card {
-            padding: 34px;
-            border: 1px solid var(--line);
-            border-radius: 22px;
-            background:
-                radial-gradient(circle at 100% 0%,
-                    rgba(57, 217, 154, 0.10),
-                    transparent 42%),
-                var(--panel);
-            box-shadow: 0 24px 70px var(--shadow, rgba(0, 0, 0, .15));
-        }
-
-        .contact-card-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 32px;
-        }
-
-        .contact-icon {
-            width: 44px;
-            height: 44px;
-            display: grid;
-            place-items: center;
-            border: 1px solid var(--line);
-            border-radius: 13px;
-            color: var(--mint);
-            font-size: 24px;
-            background: var(--surface-glass);
-        }
-
-        .contact-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .contact-card h3 {
-            color: var(--text);
-            font-size: 25px;
-            line-height: 1.3;
-            letter-spacing: -0.7px;
-            margin: 0 0 12px;
-        }
-
-        .contact-card>p {
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.8;
-            margin: 0 0 25px;
-        }
-
-        .contact-email {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 15px 0;
-            margin-bottom: 22px;
-            border-top: 1px solid var(--line);
-            border-bottom: 1px solid var(--line);
-            color: var(--text);
-            font-size: 14px;
-            text-decoration: none;
-            overflow-wrap: anywhere;
-            transition: color .2s ease;
-        }
-
-        .contact-email span {
-            color: var(--mint);
-            font-size: 18px;
-        }
-
-        .contact-email:hover {
-            color: var(--mint);
-        }
-
-        .contact-button {
-            width: 100%;
-            min-height: 49px;
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            border-radius: 10px;
-            background: var(--mint);
-            color: #071810;
-            font-size: 13px;
-            font-weight: 800;
-            text-decoration: none;
-            transition: transform .2s ease, box-shadow .2s ease;
-        }
-
-        .contact-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 28px rgba(57, 217, 154, .16);
-        }
-
-        .contact-button:focus-visible,
-        .contact-email:focus-visible {
-            outline: 3px solid var(--mint);
-            outline-offset: 4px;
-        }
-
-        @media (max-width: 800px) {
-            .contact-section {
-                padding: 78px 22px;
-            }
-
-            .contact-container {
-                grid-template-columns: 1fr;
-                gap: 38px;
-            }
-
-            .contact-heading h2 {
-                letter-spacing: -1.8px;
-            }
-
-            .contact-card {
-                padding: 26px;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-
-            .contact-email,
-            .contact-button {
-                transition: none;
-            }
-        }
-    </style>
-    ```
     <script type="module">
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
 
