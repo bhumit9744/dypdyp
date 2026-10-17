@@ -110,15 +110,32 @@
     overflow: visible !important;
   }
 
-  /* Hide app chrome, navigation, headers, sidebars, buttons, and floating widgets */
+  /* Hide app chrome, navigation, headers, sidebars, buttons, and floating widgets OUTSIDE the resume canvas */
   .no-print,
-  header,
-  aside,
-  nav,
-  button,
+  body > *:not(#root),
+  #root > div > aside,
+  #root > div > div > header,
+  #root > div > div > div:not(main),
+  footer,
+  aside:not(#resume-print-canvas aside),
+  nav:not(#resume-print-canvas nav),
+  button:not(#resume-print-canvas button),
   .fixed,
   [role="dialog"] {
     display: none !important;
+  }
+
+  /* Explicitly ensure the resume headers, typography, and sections are 100% visible */
+  #resume-print-canvas,
+  .resume-print-container,
+  #resume-print-canvas header,
+  .resume-print-container header,
+  #resume-print-canvas main,
+  .resume-print-container main,
+  #resume-print-canvas section,
+  .resume-print-container section {
+    display: block !important;
+    visibility: visible !important;
   }
 
   /* Unconstrain all layout wrappers so they do not clip or hide child elements */

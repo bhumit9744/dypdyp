@@ -26,6 +26,7 @@ import { TopToolbar, RightSidebarTab } from './resume/TopToolbar';
 import { LeftSidebar } from './resume/LeftSidebar';
 import { RightSidebar } from './resume/RightSidebar';
 import { ResumeCanvas } from './resume/ResumeCanvas';
+import { exportResumeToPdf } from './resume/printUtils';
 import {
   UploadResumeModal,
   CompareVersionsModal,
@@ -237,19 +238,11 @@ export const ResumeSubSection: React.FC = () => {
   };
 
   const handleExportPdf = useCallback(() => {
-    const wasEditing = isEditing;
-    // Temporarily turn off editing mode so print output renders pure text spans
-    setIsEditing(false);
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        window.print();
-        // Restore previous editing state after print dialog opens
-        setTimeout(() => {
-          setIsEditing(wasEditing);
-        }, 500);
-      }, 50);
-    });
-  }, [isEditing]);
+    if (!activeResume) return;
+    const candidateName =
+      activeResume.content.contact.full_name || activeResume.title || 'Candidate Resume';
+    exportResumeToPdf('resume-print-canvas', candidateName, activeResume.target_role);
+  }, [activeResume]);
 
   useEffect(() => {
     const handleJarvisExport = () => {

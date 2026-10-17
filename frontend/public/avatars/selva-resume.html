@@ -225,18 +225,31 @@
 
     /* Print styling */
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       body {
-        background: #ffffff;
-        padding: 0;
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #0f172a !important;
       }
       .top-bar {
         display: none !important;
       }
       .resume-sheet {
-        box-shadow: none;
-        padding: 0;
-        max-width: 100%;
-        border-radius: 0;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        border-radius: 0 !important;
       }
     }
   </style>
